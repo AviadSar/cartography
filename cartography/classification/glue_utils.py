@@ -1,5 +1,9 @@
 import logging
 import os
+import dataclasses
+from dataclasses import dataclass
+import json
+from typing import List,  Optional, Union
 
 from transformers import glue_compute_metrics
 from transformers import glue_convert_examples_to_features as convert_examples_to_features
@@ -34,14 +38,9 @@ glue_output_modes["snli"] = "classification"
 glue_output_modes["winogrande"] = "classification"
 
 
+@dataclass(frozen=True)
 class AdaptedInputFeatures(InputFeatures):
-    def __init__(self, input_ids, attention_mask=None, token_type_ids=None, label=None, example_id=None):
-        self.input_ids = input_ids
-        self.attention_mask = attention_mask
-        self.token_type_ids = token_type_ids
-        self.label = label
-        self.example_id = example_id
-
+    example_id: Optional[Union[int, float]] = None
 
 
 def adapted_glue_convert_examples_to_features(
@@ -108,7 +107,10 @@ def adapted_glue_convert_examples_to_features(
             logger.info("Writing example %d/%d" % (ex_index, len_examples))
 
         inputs = tokenizer.encode_plus(example.text_a, example.text_b, add_special_tokens=True, max_length=max_length,)
-        input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
+        if 'token_type_ids' in inputs:
+            input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
+        else:
+            input_ids, token_type_ids = inputs["input_ids"], inputs["input_ids"]
 
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.
@@ -192,6 +194,6 @@ def adapted_glue_compute_metrics(task_name, preds, labels):
     except KeyError:
       if task_name in ["snli", "winogrande", "toxic"]:
         # Since MNLI also uses accuracy.
-        return glue_compute_metrics("mnli", preds, labels)
+        return glue_compute_metrics("qnli", preds, labels)
     raise KeyError(task_name)
 

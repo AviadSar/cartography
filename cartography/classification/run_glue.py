@@ -59,7 +59,6 @@ from cartography.classification.params import Params, save_args_to_file
 
 from cartography.selection.selection_utils import log_training_dynamics
 
-
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
@@ -68,16 +67,24 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-ALL_MODELS = sum(
-    (
-        tuple(conf.pretrained_config_archive_map.keys())
-        for conf in (
-            BertConfig,
-            RobertaConfig,
-        )
-    ),
-    (),
-)
+ALL_MODELS = ['bert',
+              'bert-base',
+              'bert-large',
+              'bert-base-uncased',
+              'roberta',
+              'roberta-base',
+              'roberta-large'
+              ]
+# ALL_MODELS = sum(
+#     (
+#         tuple(conf.pretrained_config_archive_map.keys())
+#         for conf in (
+#             BertConfig,
+#             RobertaConfig,
+#         )
+#     ),
+#     (),
+# )
 
 MODEL_CLASSES = {
     "bert": (BertConfig, AdaptedBertForSequenceClassification, BertTokenizer),
@@ -388,6 +395,7 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
     for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
         eval_dataset = load_and_cache_examples(
             args, eval_task, tokenizer, evaluate=True, data_split=f"{eval_split}_{prefix}")
+        # eval_dataset = TensorDataset(*eval_dataset[:len(eval_dataset) // 100])
 
         if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
             os.makedirs(eval_output_dir)
@@ -680,10 +688,11 @@ def run_transformer(args):
     args.learning_rate = float(args.learning_rate)
     if args.do_train:
         # If training for the first time, remove cache. If training from a checkpoint, keep cache.
-        if os.path.exists(args.features_cache_dir) and not args.overwrite_output_dir:
-            logger.info(f"Found existing cache for the same seed {args.seed}: "
-                        f"{args.features_cache_dir}...Deleting!")
-            shutil.rmtree(args.features_cache_dir)
+        if os.path.exists(args.features_cache_dir):
+            logger.info(f"Found existing cache for the same seed {args.seed}: ")
+            if args.overwrite_cache:
+                logger.info(f"{args.features_cache_dir}...Deleting!")
+                shutil.rmtree(args.features_cache_dir)
 
         # Create output directory if needed
         if not os.path.exists(args.output_dir) and args.local_rank in [-1, 0]:
@@ -691,6 +700,8 @@ def run_transformer(args):
             save_args_to_file(args, mode="train")
 
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
+        # TODO: switch hard-coded // 10 to an arg
+        train_dataset = TensorDataset(*train_dataset[:len(train_dataset) // 10])
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(f" global_step = {global_step}, average loss = {tr_loss:.4f}")
 

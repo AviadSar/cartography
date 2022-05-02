@@ -15,12 +15,16 @@ class SNLIProcessor(DataProcessor):
         for (i, line) in enumerate(lines):
             if i == 0:
                 continue
-            guid = line[2] #"%s-%s" % (set_type, line[0])
-            text_a = line[7]
-            text_b = line[8]
-            label = line[-1]
-            if label == "-" or label == "":
+
+            # guid = f"{set_type}-{i}" #"%s-%s" % (set_type, line[0])
+            guid = line[8]
+            text_a = line[5]
+            text_b = line[6]
+            label = line[0]
+
+            if label != "neutral" and label != "entailment" and label != "contradiction":
                 continue
+
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples

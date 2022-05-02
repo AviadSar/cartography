@@ -67,6 +67,7 @@ class AdaptedRobertaForSequenceClassification(RobertaForSequenceClassification):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
         )
+        outputs = tuple(outputs.values())
         sequence_output = outputs[0]
         logits = self.classifier(sequence_output)
 
@@ -319,6 +320,7 @@ class AdaptedBertForSequenceClassification(BertForSequenceClassification):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
         )
+        outputs = tuple(outputs.values())
 
         pooled_output = outputs[1]
 
