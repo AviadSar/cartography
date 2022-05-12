@@ -18,6 +18,12 @@ Finetuning the library models for sequence classification on GLUE-style tasks
 (BERT, XLM, XLNet, RoBERTa, Albert, XLM-RoBERTa); modified for Dataset Cartography.
 """
 
+import sys
+if sys.path[0] != '.':
+    print('first path variable is: ' + sys.path[0])
+    sys.path.insert(0, '.')
+    print("added '.' to sys.path")
+
 import _jsonnet
 import argparse
 import glob
@@ -73,7 +79,8 @@ ALL_MODELS = ['bert',
               'bert-base-uncased',
               'roberta',
               'roberta-base',
-              'roberta-large'
+              'roberta-large',
+              'random'
               ]
 # ALL_MODELS = sum(
 #     (
@@ -376,8 +383,8 @@ def save_model(args, model, tokenizer, epoch, best_epoch,  best_dev_performance)
         # Save model checkpoint
         # Take care of distributed/parallel training
         model_to_save = (model.module if hasattr(model, "module") else model)
-        model_to_save.save_pretrained(args.output_dir)
-        tokenizer.save_pretrained(args.output_dir)
+        # model_to_save.save_pretrained(args.output_dir)
+        # tokenizer.save_pretrained(args.output_dir)
         torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         logger.info(f"*** Found BEST model, and saved checkpoint. "
@@ -533,12 +540,14 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
     output_mode = output_modes[task]
 
     if not os.path.exists(args.features_cache_dir):
+        print('cache dir is: ' + args.features_cache_dir)
         os.makedirs(args.features_cache_dir)
     cached_features_file = os.path.join(
         args.features_cache_dir,
-        "cached_{}_{}_{}_{}".format(
+        "cached_{}_{}_{}_{}_{}".format(
             data_split,
             list(filter(None, args.model_name_or_path.split("/"))).pop(),
+            list(filter(None, args.data_model_name_or_path.split("/"))).pop(),
             str(args.max_seq_length),
             str(task),
         ),
@@ -555,6 +564,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
             label_list[1], label_list[2] = label_list[2], label_list[1]
         examples = load_dataset(args, task, data_split)
         if task == "winogrande":
+            print('task: winogrande')
             features = convert_mc_examples_to_features(
                 examples,
                 label_list,
@@ -700,8 +710,8 @@ def run_transformer(args):
             save_args_to_file(args, mode="train")
 
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        # TODO: switch hard-coded // 10 to an arg
-        train_dataset = TensorDataset(*train_dataset[:len(train_dataset) // 10])
+        if args.train_set_fraction < 1:
+            train_dataset = TensorDataset(*train_dataset[:int(len(train_dataset) * args.train_set_fraction)])
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(f" global_step = {global_step}, average loss = {tr_loss:.4f}")
 
@@ -716,8 +726,8 @@ def run_transformer(args):
 
             # Take care of distributed/parallel training
             model_to_save = (model.module if hasattr(model, "module") else model)
-            model_to_save.save_pretrained(args.output_dir)
-            tokenizer.save_pretrained(args.output_dir)
+            # model_to_save.save_pretrained(args.output_dir)
+            # tokenizer.save_pretrained(args.output_dir)
 
             # Good practice: save your training arguments together with the trained model
             torch.save(args, os.path.join(args.output_dir, "training_args.bin"))

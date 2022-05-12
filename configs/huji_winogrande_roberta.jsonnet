@@ -1,19 +1,19 @@
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_VISIBLE_DEVICES"));
 
-local LEARNING_RATE = 1.0708609960508476e-05;
+local LEARNING_RATE = 1.1235456034244052e-05;
 local BATCH_SIZE = 4;
 local NUM_EPOCHS = 5;
-local SEED = 93078;
+local SEED = 71789;
 
-local TASK = "SNLI";
-local DATA_DIR = "C:\\my_documents\\datasets\\swabhas\\data\\glue\\" + TASK;
-local FEATURES_CACHE_DIR = DATA_DIR + "\\cache_" + SEED;
+local TASK = "WINOGRANDE";
+local DATA_DIR = "/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV";
+local FEATURES_CACHE_DIR = DATA_DIR + "/cache_roberta_" + SEED ;
 
-local TEST = "C:\\my_documents\\datasets\\swabhas\\data\\glue\\SNLI\\diagnostic_test.tsv";
+local TEST = "/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/wsc_superglue_trval_test.tsv";
 
 {
    "data_dir": DATA_DIR,
-   "model_type": "roberta",
+   "model_type": "roberta_mc",
    "model_name_or_path": "roberta-base",
    "task_name": TASK,
    "seed": SEED,
@@ -22,10 +22,10 @@ local TEST = "C:\\my_documents\\datasets\\swabhas\\data\\glue\\SNLI\\diagnostic_
    "features_cache_dir": FEATURES_CACHE_DIR,
    "per_gpu_train_batch_size": BATCH_SIZE,
    "per_gpu_eval_batch_size": BATCH_SIZE,
-   "gradient_accumulation_steps": 128 // BATCH_SIZE,
+   "gradient_accumulation_steps": 128 / BATCH_SIZE,
    "do_train": true,
    "do_eval": true,
    "do_test": true,
    "test": TEST,
-   "patience": 3,
+   "patience": 5,
 }
