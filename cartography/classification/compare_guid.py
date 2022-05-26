@@ -20,11 +20,11 @@ args = parser.parse_args()
 #     for line in tsv_file:
 #         lines += 1
 
-args.data_file_1 = '../filtered_datasets/cartography_variability_0.33/SNLI/huji_snli_5_roberta/train.tsv'
-args.data_file_2 = '../filtered_datasets/cartography_variability_0.33/SNLI/huji_snli_5_bert/train.tsv'
+args.data_file_1 = '../filtered_datasets/cartography_variability_0.33/WINOGRANDE/huji_winogrande_roberta_large_5_epochs/train.tsv'
+args.data_file_2 = '../filtered_datasets/cartography_variability_0.33/WINOGRANDE/huji_winogrande_deberta_large_5_epochs/train.tsv'
 
-data1 = read_glue_tsv(args.data_file_1, guid_index=8)
-data2 = read_glue_tsv(args.data_file_2, guid_index=8)
+data1 = read_glue_tsv(args.data_file_1, guid_index=0)
+data2 = read_glue_tsv(args.data_file_2, guid_index=0)
 
 print('Number of examples 1: ', len(data1[0].keys()))
 print('Number of examples 2: ', len(data2[0].keys()))

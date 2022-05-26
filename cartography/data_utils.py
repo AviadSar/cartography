@@ -32,11 +32,11 @@ def read_data(file_path: str,
         return read_glue_tsv(file_path,
                              guid_index=8,
                              label_index=0,
-                             guid_as_int=guid_as_int)
+                             guid_as_int=True)
     elif task_name == "WINOGRANDE":
         return read_glue_tsv(file_path,
                              guid_index=0,
-                             guid_as_int=guid_as_int)
+                             guid_as_int=False)
     elif task_name == "QNLI":
         return read_glue_tsv(file_path,
                              guid_index=0)

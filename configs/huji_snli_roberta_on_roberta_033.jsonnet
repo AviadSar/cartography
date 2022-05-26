@@ -13,7 +13,7 @@ local TEST = "C:\\my_documents\\datasets\\swabhas\\data\\glue\\SNLI\\diagnostic_
 
 {
    "data_dir": DATA_DIR,
-   "model_type": "bert",
+   "model_type": "roberta",
    "model_name_or_path": "roberta-base",
    "data_model_name_or_path": "roberta-base",
    "task_name": TASK,

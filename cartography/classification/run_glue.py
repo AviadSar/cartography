@@ -19,6 +19,7 @@ Finetuning the library models for sequence classification on GLUE-style tasks
 """
 
 import sys
+
 if sys.path[0] != '.':
     print('first path variable is: ' + sys.path[0])
     sys.path.insert(0, '.')
@@ -46,11 +47,14 @@ from transformers import (
     BertTokenizer,
     RobertaConfig,
     RobertaTokenizer,
+    DebertaConfig,
+    DebertaTokenizer,
     get_linear_schedule_with_warmup,
 )
 
 from cartography.classification.glue_utils import adapted_glue_compute_metrics as compute_metrics
-from cartography.classification.glue_utils import adapted_glue_convert_examples_to_features as convert_examples_to_features
+from cartography.classification.glue_utils import \
+    adapted_glue_convert_examples_to_features as convert_examples_to_features
 from cartography.classification.glue_utils import glue_output_modes as output_modes
 from cartography.classification.glue_utils import glue_processors as processors
 from cartography.classification.diagnostics_evaluation import evaluate_by_category
@@ -58,7 +62,9 @@ from cartography.classification.models import (
     AdaptedBertForMultipleChoice,
     AdaptedBertForSequenceClassification,
     AdaptedRobertaForMultipleChoice,
-    AdaptedRobertaForSequenceClassification
+    AdaptedRobertaForSequenceClassification,
+    AdaptedDebertaForSequenceClassification,
+    AdaptedDebertaForMultipleChoice
 )
 from cartography.classification.multiple_choice_utils import convert_mc_examples_to_features
 from cartography.classification.params import Params, save_args_to_file
@@ -70,16 +76,20 @@ try:
 except ImportError:
     from tensorboardX import SummaryWriter
 
-
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = ['bert',
               'bert-base',
               'bert-large',
+              'bert-large-uncased',
               'bert-base-uncased',
+              'bert-base-cased',
+              'bert-large-cased',
               'roberta',
               'roberta-base',
               'roberta-large',
+              'microsoft/deberta-base',
+              'microsoft/deberta-large',
               'random'
               ]
 # ALL_MODELS = sum(
@@ -98,6 +108,8 @@ MODEL_CLASSES = {
     "bert_mc": (BertConfig, AdaptedBertForMultipleChoice, BertTokenizer),
     "roberta": (RobertaConfig, AdaptedRobertaForSequenceClassification, RobertaTokenizer),
     "roberta_mc": (RobertaConfig, AdaptedRobertaForMultipleChoice, RobertaTokenizer),
+    "deberta": (DebertaConfig, AdaptedDebertaForSequenceClassification, DebertaTokenizer),
+    "deberta_mc": (DebertaConfig, AdaptedDebertaForMultipleChoice, DebertaTokenizer)
 }
 
 
@@ -123,7 +135,7 @@ def train(args, train_dataset, model, tokenizer):
     if args.max_steps > 0:
         t_total = args.max_steps
         args.num_train_epochs = args.max_steps // (
-            len(train_dataloader) // args.gradient_accumulation_steps) + 1
+                len(train_dataloader) // args.gradient_accumulation_steps) + 1
     else:
         t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
 
@@ -145,7 +157,7 @@ def train(args, train_dataset, model, tokenizer):
 
     # Check if saved optimizer or scheduler states exist
     if os.path.isfile(os.path.join(args.model_name_or_path, "optimizer.pt")) and os.path.isfile(
-        os.path.join(args.model_name_or_path, "scheduler.pt")
+            os.path.join(args.model_name_or_path, "scheduler.pt")
     ):
         # Load in optimizer and scheduler states
         optimizer.load_state_dict(torch.load(os.path.join(args.model_name_or_path, "optimizer.pt")))
@@ -195,7 +207,7 @@ def train(args, train_dataset, model, tokenizer):
         global_step = int(args.model_name_or_path.split("-")[-1].split("/")[0])
         epochs_trained = global_step // (len(train_dataloader) // args.gradient_accumulation_steps)
         steps_trained_in_this_epoch = global_step % (
-            len(train_dataloader) // args.gradient_accumulation_steps)
+                len(train_dataloader) // args.gradient_accumulation_steps)
 
         logger.info(f"  Continuing training from checkpoint, will skip to saved global_step")
         logger.info(f"  Continuing training from epoch {epochs_trained}")
@@ -278,9 +290,9 @@ def train(args, train_dataset, model, tokenizer):
                 global_step += 1
 
                 if (
-                    args.local_rank in [-1, 0] and
-                    args.logging_steps > 0 and
-                    global_step % args.logging_steps == 0
+                        args.local_rank in [-1, 0] and
+                        args.logging_steps > 0 and
+                        global_step % args.logging_steps == 0
                 ):
                     epoch_log = {}
                     # Only evaluate when single GPU otherwise metrics may not average well
@@ -300,9 +312,9 @@ def train(args, train_dataset, model, tokenizer):
                     logger.info(json.dumps({**epoch_log, **{"step": global_step}}))
 
                 if (
-                    args.local_rank in [-1, 0] and
-                    args.save_steps > 0 and
-                    global_step % args.save_steps == 0
+                        args.local_rank in [-1, 0] and
+                        args.save_steps > 0 and
+                        global_step % args.save_steps == 0
                 ):
                     # Save model checkpoint
                     output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
@@ -322,7 +334,7 @@ def train(args, train_dataset, model, tokenizer):
                     logger.info("Saving optimizer and scheduler states to %s", output_dir)
 
             epoch_iterator.set_description(f"lr = {scheduler.get_lr()[0]:.8f}, "
-                                           f"loss = {(tr_loss-epoch_loss)/(step+1):.4f}")
+                                           f"loss = {(tr_loss - epoch_loss) / (step + 1):.4f}")
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
                 break
@@ -346,7 +358,7 @@ def train(args, train_dataset, model, tokenizer):
                      "train_acc": train_acc,
                      "best_dev_performance": best_dev_performance,
                      "avg_batch_loss": (tr_loss - epoch_loss) / args.per_gpu_train_batch_size,
-                     "learning_rate": scheduler.get_lr()[0],}
+                     "learning_rate": scheduler.get_lr()[0], }
         epoch_loss = tr_loss
 
         logger.info(f"  End of epoch : {epoch}")
@@ -361,7 +373,7 @@ def train(args, train_dataset, model, tokenizer):
             break
         elif args.evaluate_during_training and epoch - best_epoch >= args.patience:
             logger.info(f"Ran out of patience. Best epoch was {best_epoch}. "
-                f"Stopping training at epoch {epoch} out of {args.num_train_epochs} epochs.")
+                        f"Stopping training at epoch {epoch} out of {args.num_train_epochs} epochs.")
             train_iterator.close()
             break
 
@@ -371,7 +383,7 @@ def train(args, train_dataset, model, tokenizer):
     return global_step, tr_loss / global_step
 
 
-def save_model(args, model, tokenizer, epoch, best_epoch,  best_dev_performance):
+def save_model(args, model, tokenizer, epoch, best_epoch, best_dev_performance):
     results, _ = evaluate(args, model, tokenizer, prefix="in_training")
     # TODO(SS): change hard coding `acc` as the desired metric, might not work for all tasks.
     desired_metric = "acc"
@@ -388,7 +400,7 @@ def save_model(args, model, tokenizer, epoch, best_epoch,  best_dev_performance)
         torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         logger.info(f"*** Found BEST model, and saved checkpoint. "
-            f"BEST dev performance : {dev_performance:.4f} ***")
+                    f"BEST dev performance : {dev_performance:.4f} ***")
     return best_dev_performance, best_epoch
 
 
@@ -480,7 +492,7 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
         with open(output_pred_file, "w") as writer:
             logger.info(f"***** Write {eval_task} {eval_split} predictions {prefix} *****")
             for ex_id, pred, gold, max_conf, prob in zip(
-                example_ids, preds, gold_labels, max_confidences, probs.tolist()):
+                    example_ids, preds, gold_labels, max_confidences, probs.tolist()):
                 record = {"guid": ex_id,
                           "label": processors[args.task_name]().get_labels()[pred],
                           "gold": processors[args.task_name]().get_labels()[gold],
@@ -572,7 +584,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
                 tokenizer,
                 pad_on_left=bool(args.model_type in ["xlnet"]),  # pad on the left for xlnet
                 pad_token=tokenizer.pad_token_id,
-                pad_token_segment_id=tokenizer.pad_token_type_id,)
+                pad_token_segment_id=tokenizer.pad_token_type_id, )
         else:
             features = convert_examples_to_features(
                 examples,
@@ -582,7 +594,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
                 output_mode=output_mode,
                 pad_on_left=bool(args.model_type in ["xlnet"]),  # pad on the left for xlnet
                 pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-                pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0,)
+                pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0, )
         if args.local_rank in [-1, 0]:
             logger.info("Saving features into cached file %s", cached_features_file)
             torch.save(features, cached_features_file)
@@ -611,9 +623,9 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
 
 def run_transformer(args):
     if (os.path.exists(args.output_dir)
-        and os.listdir(args.output_dir)
-        and args.do_train
-        and not args.overwrite_output_dir):
+            and os.listdir(args.output_dir)
+            and args.do_train
+            and not args.overwrite_output_dir):
         raise ValueError(
             f"Output directory ({args.output_dir}) already exists and is not empty."
             f" Use --overwrite_output_dir to overcome.")
@@ -643,14 +655,14 @@ def run_transformer(args):
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN,)
+        level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN, )
     logger.warning(
         "Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
         args.local_rank,
         device,
         args.n_gpu,
         bool(args.local_rank != -1),
-        args.fp16,)
+        args.fp16, )
 
     # Set seed
     set_seed(args)
@@ -675,16 +687,16 @@ def run_transformer(args):
         args.config_name if args.config_name else args.model_name_or_path,
         num_labels=num_labels,
         finetuning_task=args.task_name,
-        cache_dir=args.cache_dir if args.cache_dir else None,)
+        cache_dir=args.cache_dir if args.cache_dir else None, )
     tokenizer = tokenizer_class.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
-        cache_dir=args.cache_dir if args.cache_dir else None,)
+        cache_dir=args.cache_dir if args.cache_dir else None, )
     model = model_class.from_pretrained(
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
         config=config,
-        cache_dir=args.cache_dir if args.cache_dir else None,)
+        cache_dir=args.cache_dir if args.cache_dir else None, )
 
     if args.local_rank == 0:
         # Make sure only the first process in distributed training will download model & vocab
@@ -769,7 +781,8 @@ def run_transformer(args):
             if args.test and "diagnostic" in args.test:
                 # For running diagnostics with MNLI, run as SNLI and use hack.
                 evaluate_by_category(predictions[args.task_name],
-                                     mnli_hack=True if args.task_name in ["SNLI", "snli"] and "mnli" in args.output_dir else False,
+                                     mnli_hack=True if args.task_name in ["SNLI",
+                                                                          "snli"] and "mnli" in args.output_dir else False,
                                      eval_filename=os.path.join(args.output_dir, f"eval_metrics_diagnostics.json"),
                                      diagnostics_file_carto=args.test)
     logger.info(" **** Done ****")

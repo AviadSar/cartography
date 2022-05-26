@@ -100,6 +100,7 @@ def compute_train_dy_metrics(training_dynamics, args):
 
     loss = torch.nn.CrossEntropyLoss()
 
+    # TODO: remove first epoch
     num_tot_epochs = len(list(training_dynamics.values())[0]["logits"])
     if args.burn_out < num_tot_epochs:
         logger.info(f"Computing training dynamics. Burning out at {args.burn_out} of {num_tot_epochs}. ")
@@ -117,6 +118,11 @@ def compute_train_dy_metrics(training_dynamics, args):
 
         record = training_dynamics[guid]
         for i, epoch_logits in enumerate(record["logits"]):
+            # TODO: remove first epoch
+            # if j == 0 or j == 1:
+            #     continue
+            # else:
+            #     i = j - 2
             probs = torch.nn.functional.softmax(torch.Tensor(epoch_logits), dim=-1)
             true_class_prob = float(probs[record["gold"]])
             true_probs_trend.append(true_class_prob)
@@ -210,7 +216,7 @@ def write_filtered_data(args, train_dy_metrics):
                                                      ascending=is_ascending)
 
     original_train_file = os.path.join(args.data_dir, f"train.tsv")
-    train_numeric, header = read_data(original_train_file, task_name=args.task_name, guid_as_int=True)
+    train_numeric, header = read_data(original_train_file, task_name=args.task_name)
 
     base_dir = os.path.basename(os.path.normpath(args.model_dir))
     for fraction in [0.01, 0.05, 0.10, 0.1667, 0.25, 0.3319, 0.50, 0.75]:
