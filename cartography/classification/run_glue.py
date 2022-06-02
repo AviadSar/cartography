@@ -35,6 +35,7 @@ import os
 import random
 import shutil
 import torch
+import sentencepiece
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
@@ -49,6 +50,12 @@ from transformers import (
     RobertaTokenizer,
     DebertaConfig,
     DebertaTokenizer,
+    T5Config,
+    T5Tokenizer,
+    XLNetConfig,
+    XLNetTokenizer,
+    ElectraConfig,
+    ElectraTokenizer,
     get_linear_schedule_with_warmup,
 )
 
@@ -64,7 +71,10 @@ from cartography.classification.models import (
     AdaptedRobertaForMultipleChoice,
     AdaptedRobertaForSequenceClassification,
     AdaptedDebertaForSequenceClassification,
-    AdaptedDebertaForMultipleChoice
+    AdaptedDebertaForMultipleChoice,
+    AdaptedT5ForMultipleChoice,
+    AdaptedXLNetForMultipleChoice,
+    AdaptedElectraForMultipleChoice,
 )
 from cartography.classification.multiple_choice_utils import convert_mc_examples_to_features
 from cartography.classification.params import Params, save_args_to_file
@@ -90,7 +100,12 @@ ALL_MODELS = ['bert',
               'roberta-large',
               'microsoft/deberta-base',
               'microsoft/deberta-large',
-              'random'
+              't5-base',
+              't5-large',
+              'xlnet-large-cased',
+              'xlnet-large-uncased',
+              'google/electra-large-discriminator',
+              'random',
               ]
 # ALL_MODELS = sum(
 #     (
@@ -109,7 +124,10 @@ MODEL_CLASSES = {
     "roberta": (RobertaConfig, AdaptedRobertaForSequenceClassification, RobertaTokenizer),
     "roberta_mc": (RobertaConfig, AdaptedRobertaForMultipleChoice, RobertaTokenizer),
     "deberta": (DebertaConfig, AdaptedDebertaForSequenceClassification, DebertaTokenizer),
-    "deberta_mc": (DebertaConfig, AdaptedDebertaForMultipleChoice, DebertaTokenizer)
+    "deberta_mc": (DebertaConfig, AdaptedDebertaForMultipleChoice, DebertaTokenizer),
+    "t5_mc": (T5Config, AdaptedT5ForMultipleChoice, T5Tokenizer),
+    "xlnet_mc": (XLNetConfig, AdaptedXLNetForMultipleChoice, XLNetTokenizer),
+    "electra_mc": (ElectraConfig, AdaptedElectraForMultipleChoice, ElectraTokenizer),
 }
 
 
@@ -137,7 +155,7 @@ def train(args, train_dataset, model, tokenizer):
         args.num_train_epochs = args.max_steps // (
                 len(train_dataloader) // args.gradient_accumulation_steps) + 1
     else:
-        t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
+        t_total = (len(train_dataloader) // args.gradient_accumulation_steps + 1) * args.num_train_epochs
 
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
@@ -415,6 +433,8 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
         eval_dataset = load_and_cache_examples(
             args, eval_task, tokenizer, evaluate=True, data_split=f"{eval_split}_{prefix}")
         # eval_dataset = TensorDataset(*eval_dataset[:len(eval_dataset) // 100])
+        if args.train_set_fraction < 1:
+            eval_dataset = TensorDataset(*eval_dataset[:int(len(eval_dataset) * args.train_set_fraction)])
 
         if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
             os.makedirs(eval_output_dir)

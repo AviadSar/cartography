@@ -189,7 +189,9 @@ def consider_ascending_order(filtering_metric: str) -> bool:
     elif filtering_metric == "correctness":
         return True
     elif filtering_metric == "random":
-        return True
+        return False
+    elif filtering_metric == "mix":
+        return False
     else:
         raise NotImplementedError(f"Filtering based on {filtering_metric} not implemented!")
 
@@ -211,9 +213,15 @@ def write_filtered_data(args, train_dy_metrics):
     # Sort by selection.
     if args.metric == 'random':
         sorted_scores = train_dy_metrics.sample(frac=1)
+    elif args.metric == 'mix':
+        sorted_scores = train_dy_metrics
+        sorted_threshold_closeness = train_dy_metrics.sort_values(by='threshold_closeness', ascending=False)
+        sorted_confidence = train_dy_metrics.sort_values(by='confidence', ascending=False)
+        sorted_variability = train_dy_metrics.sort_values(by='variability', ascending=False)
+        sorted_correctness = train_dy_metrics.sort_values(by='correctness', ascending=False)
+        sorted_forgetfulness = train_dy_metrics.sort_values(by='forgetfulness', ascending=False)
     else:
-        sorted_scores = train_dy_metrics.sort_values(by=[args.metric],
-                                                     ascending=is_ascending)
+        sorted_scores = train_dy_metrics.sort_values(by=[args.metric], ascending=is_ascending)
 
     original_train_file = os.path.join(args.data_dir, f"train.tsv")
     train_numeric, header = read_data(original_train_file, task_name=args.task_name)
@@ -222,6 +230,9 @@ def write_filtered_data(args, train_dy_metrics):
     for fraction in [0.01, 0.05, 0.10, 0.1667, 0.25, 0.3319, 0.50, 0.75]:
         outdir = os.path.join(args.filtering_output_dir,
                               f"cartography_{args.metric}_{fraction:.2f}/{args.task_name}/{base_dir}")
+        if args.metric == 'mix':
+            outdir = os.path.join(args.filtering_output_dir,
+                                  f"cartography_{args.metric}_{fraction:.2f}_{'_'.join([str(ratio) for ratio in args.mix_ratio])}/{args.task_name}/{base_dir}")
         if not os.path.exists(outdir):
             os.makedirs(outdir)
 
@@ -234,6 +245,15 @@ def write_filtered_data(args, train_dy_metrics):
         with open(os.path.join(outdir, f"train.tsv"), "w") as outfile:
             outfile.write(header + "\n")
             selected = sorted_scores.head(n=num_samples + 1)
+            if args.metric == 'mix':
+                ratios = args.mix_ratio
+                selected_threshold_closeness = sorted_threshold_closeness.head(n=int(num_samples * ratios[0]))
+                selected_confidence = sorted_confidence.head(n=int(num_samples * ratios[1]))
+                selected_variability = sorted_variability.head(n=int(num_samples * ratios[2]))
+                selected_correctness = sorted_correctness.head(n=int(num_samples * ratios[3]))
+                selected_forgetfulness = sorted_forgetfulness.head(n=int(num_samples * ratios[4]))
+                selected = pd.concat([selected_threshold_closeness, selected_confidence, selected_variability,
+                                      selected_correctness, selected_forgetfulness])
             if args.both_ends:
                 hardest = sorted_scores.head(n=int(num_samples * 0.7))
                 easiest = sorted_scores.tail(n=num_samples - hardest.shape[0])
@@ -247,6 +267,8 @@ def write_filtered_data(args, train_dy_metrics):
             for idx in selection_iterator:
                 if args.metric == 'random':
                     selection_iterator.set_description(f"random selected guid is: {selected.iloc[idx]['guid']}")
+                if args.metric == 'mix':
+                    selection_iterator.set_description(f"mix selected guid is: {selected.iloc[idx]['guid']}")
                 else:
                     selection_iterator.set_description(f"{args.metric} = {selected.iloc[idx][args.metric]:.4f}")
 
@@ -397,8 +419,14 @@ if __name__ == "__main__":
                                  'variability',
                                  'correctness',
                                  'forgetfulness',
-                                 'random'),
+                                 'random',
+                                 'mix'),
                         help="Metric to filter data by.", )
+    parser.add_argument('--mix_ratio', # for threshold_closeness, confidence, variability, correctness, forgetfulness
+                        type=float,
+                        nargs='+',
+                        default=[],
+                        help="ratio of data filtered by different metrics", )
     parser.add_argument("--include_ci",
                         action="store_true",
                         help="Compute the confidence interval for variability.")
