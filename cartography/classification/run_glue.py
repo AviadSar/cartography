@@ -72,8 +72,10 @@ from cartography.classification.models import (
     AdaptedRobertaForSequenceClassification,
     AdaptedDebertaForSequenceClassification,
     AdaptedDebertaForMultipleChoice,
+    AdaptedT5ForSequenceClassification,
     AdaptedT5ForMultipleChoice,
     AdaptedXLNetForMultipleChoice,
+    AdaptedElectraForSequenceClassification,
     AdaptedElectraForMultipleChoice,
 )
 from cartography.classification.multiple_choice_utils import convert_mc_examples_to_features
@@ -125,8 +127,10 @@ MODEL_CLASSES = {
     "roberta_mc": (RobertaConfig, AdaptedRobertaForMultipleChoice, RobertaTokenizer),
     "deberta": (DebertaConfig, AdaptedDebertaForSequenceClassification, DebertaTokenizer),
     "deberta_mc": (DebertaConfig, AdaptedDebertaForMultipleChoice, DebertaTokenizer),
+    "t5": (T5Config, AdaptedT5ForSequenceClassification, T5Tokenizer),
     "t5_mc": (T5Config, AdaptedT5ForMultipleChoice, T5Tokenizer),
     "xlnet_mc": (XLNetConfig, AdaptedXLNetForMultipleChoice, XLNetTokenizer),
+    "electra": (ElectraConfig, AdaptedElectraForSequenceClassification, ElectraTokenizer),
     "electra_mc": (ElectraConfig, AdaptedElectraForMultipleChoice, ElectraTokenizer),
 }
 
@@ -433,8 +437,8 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
         eval_dataset = load_and_cache_examples(
             args, eval_task, tokenizer, evaluate=True, data_split=f"{eval_split}_{prefix}")
         # eval_dataset = TensorDataset(*eval_dataset[:len(eval_dataset) // 100])
-        if args.train_set_fraction < 1:
-            eval_dataset = TensorDataset(*eval_dataset[:int(len(eval_dataset) * args.train_set_fraction)])
+        # if args.train_set_fraction < 1:
+        #     eval_dataset = TensorDataset(*eval_dataset[:int(len(eval_dataset) * args.train_set_fraction)])
 
         if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
             os.makedirs(eval_output_dir)
@@ -576,10 +580,10 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
         os.makedirs(args.features_cache_dir)
     cached_features_file = os.path.join(
         args.features_cache_dir,
-        "cached_{}_{}_{}_{}_{}".format(
+        "cached_{}_{}{}_{}_{}".format(
             data_split,
             list(filter(None, args.model_name_or_path.split("/"))).pop(),
-            list(filter(None, args.data_model_name_or_path.split("/"))).pop(),
+            '_' + str(list(filter(None, args.data_model_name_or_path.split("/"))).pop()) if args.data_model_name_or_path != '' else '',
             str(args.max_seq_length),
             str(task),
         ),
@@ -589,6 +593,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
     else:
+    # if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Creating features from dataset file at %s", args.data_dir)
         label_list = processor.get_labels()
         if task in ["mnli", "mnli-mm"] and args.model_type in ["roberta", "xlmroberta"]:
@@ -612,6 +617,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
                 label_list=label_list,
                 max_length=args.max_seq_length,
                 output_mode=output_mode,
+                task=args.task_name,
                 pad_on_left=bool(args.model_type in ["xlnet"]),  # pad on the left for xlnet
                 pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
                 pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0, )

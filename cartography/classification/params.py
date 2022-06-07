@@ -30,7 +30,7 @@ class Params:
             self.data_model_name_or_path: str = configs["data_model_name_or_path"]
         else:
             self.data_model_name_or_path: str = configs["model_name_or_path"]
-        assert self.data_model_name_or_path in ALL_MODELS
+        assert (self.data_model_name_or_path in ALL_MODELS or self.data_model_name_or_path == '')
 
         # The name of the task to train.
         self.task_name: str = configs["task_name"]

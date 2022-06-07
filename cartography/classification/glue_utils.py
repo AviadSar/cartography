@@ -26,6 +26,7 @@ from cartography.classification.mnli_utils import AdaptedMnliMismatchedProcessor
 from cartography.classification.qnli_utils import AdaptedQnliProcessor
 from cartography.classification.snli_utils import SNLIProcessor
 from cartography.classification.winogrande_utils import WinograndeProcessor
+from cartography.classification.anli_utils import ANLIProcessor
 
 
 glue_processors["snli"] = SNLIProcessor
@@ -33,9 +34,15 @@ glue_processors["mnli"] = AdaptedMnliProcessor
 glue_processors["mnli-mm"] = AdaptedMnliMismatchedProcessor
 glue_processors["qnli"] = AdaptedQnliProcessor
 glue_processors["winogrande"] = WinograndeProcessor
+glue_processors["anli_v1.0_r1"] = ANLIProcessor
+glue_processors["anli_v1.0_r2"] = ANLIProcessor
+glue_processors["anli_v1.0_r3"] = ANLIProcessor
 
 glue_output_modes["snli"] = "classification"
 glue_output_modes["winogrande"] = "classification"
+glue_output_modes["anli_v1.0_r1"] = "classification"
+glue_output_modes["anli_v1.0_r2"] = "classification"
+glue_output_modes["anli_v1.0_r3"] = "classification"
 
 
 @dataclass(frozen=True)
@@ -94,19 +101,33 @@ def adapted_glue_convert_examples_to_features(
 
     label_map = {label: i for i, label in enumerate(label_list)}
 
+    len_examples = 0
+    if is_tf_dataset:
+        len_examples = tf.data.experimental.cardinality(examples)
+    else:
+        len_examples = len(examples)
+
     features = []
+
+    if max_length is None:
+        max_length = 0
+        for example in examples:
+            inputs = tokenizer.encode_plus(example.text_a, example.text_b, add_special_tokens=True)
+            curr_len = len(inputs.data['input_ids'])
+            if curr_len > max_length:
+                max_length = curr_len
+    print('tokenizer max length is: {}'.format(max_length))
+
     for (ex_index, example) in enumerate(examples):
-        len_examples = 0
-        if is_tf_dataset:
-            example = processor.get_example_from_tensor_dict(example)
-            example = processor.tfds_map(example)
-            len_examples = tf.data.experimental.cardinality(examples)
-        else:
-            len_examples = len(examples)
         if ex_index % 10000 == 0:
             logger.info("Writing example %d/%d" % (ex_index, len_examples))
 
+        if is_tf_dataset:
+            example = processor.get_example_from_tensor_dict(example)
+            example = processor.tfds_map(example)
+
         inputs = tokenizer.encode_plus(example.text_a, example.text_b, add_special_tokens=True, max_length=max_length,)
+
         if 'token_type_ids' in inputs:
             input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
         else:
@@ -142,7 +163,10 @@ def adapted_glue_convert_examples_to_features(
         else:
             raise KeyError(output_mode)
 
-        example_int_id = convert_string_to_unique_number(example.guid)
+        if task.lower() == 'snli':
+            example_int_id = convert_string_to_unique_number(example.guid)
+        else:
+            example_int_id = example.guid
         if ex_index < 5:
             logger.info("*** Example ***")
             logger.info(f"guid: {example_int_id}")
@@ -192,7 +216,7 @@ def adapted_glue_compute_metrics(task_name, preds, labels):
     try:
       return glue_compute_metrics(task_name, preds, labels)
     except KeyError:
-      if task_name in ["snli", "winogrande", "toxic"]:
+      if task_name in ["snli", "winogrande", "toxic", "anli_v1.0_r1", "anli_v1.0_r2", "anli_v1.0_r3"]:
         # Since MNLI also uses accuracy.
         return glue_compute_metrics("qnli", preds, labels)
     raise KeyError(task_name)

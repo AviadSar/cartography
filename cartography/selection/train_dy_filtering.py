@@ -242,6 +242,8 @@ def write_filtered_data(args, train_dy_metrics):
                       to_dir=outdir)
 
         num_samples = int(fraction * len(sorted_scores))
+        if args.task_name in ["SNLI", "MNLI", "WINOGRANDE"]:
+            pass
         with open(os.path.join(outdir, f"train.tsv"), "w") as outfile:
             outfile.write(header + "\n")
             selected = sorted_scores.head(n=num_samples + 1)
@@ -267,13 +269,13 @@ def write_filtered_data(args, train_dy_metrics):
             for idx in selection_iterator:
                 if args.metric == 'random':
                     selection_iterator.set_description(f"random selected guid is: {selected.iloc[idx]['guid']}")
-                if args.metric == 'mix':
+                elif args.metric == 'mix':
                     selection_iterator.set_description(f"mix selected guid is: {selected.iloc[idx]['guid']}")
                 else:
                     selection_iterator.set_description(f"{args.metric} = {selected.iloc[idx][args.metric]:.4f}")
 
                 selected_id = selected.iloc[idx]["guid"]
-                if args.task_name in ["SNLI", "MNLI"]:
+                if args.task_name in ["SNLI", "MNLI", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3"]:
                     selected_id = int(selected_id)
                 elif args.task_name == "WINOGRANDE":
                     selected_id = str(int(selected_id))
@@ -411,7 +413,7 @@ if __name__ == "__main__":
     parser.add_argument("--task_name",
                         "-t",
                         default="WINOGRANDE",
-                        choices=("SNLI", "MNLI", "QNLI", "WINOGRANDE"),
+                        choices=("SNLI", "MNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3"),
                         help="Which task are we plotting or filtering for.")
     parser.add_argument('--metric',
                         choices=('threshold_closeness',
