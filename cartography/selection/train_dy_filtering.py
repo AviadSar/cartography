@@ -224,6 +224,8 @@ def write_filtered_data(args, train_dy_metrics):
         sorted_scores = train_dy_metrics.sort_values(by=[args.metric], ascending=is_ascending)
 
     original_train_file = os.path.join(args.data_dir, f"train.tsv")
+    if args.task_name == "anli_v1.0_R1" or args.task_name == "anli_v1.0_R2" or args.task_name == "anli_v1.0_R3":
+        original_train_file = os.path.join(args.data_dir, f"train.jsonl")
     train_numeric, header = read_data(original_train_file, task_name=args.task_name)
 
     base_dir = os.path.basename(os.path.normpath(args.model_dir))
@@ -237,15 +239,27 @@ def write_filtered_data(args, train_dy_metrics):
             os.makedirs(outdir)
 
         # Dev and test need not be subsampled.
+        if args.task_name in ["SNLI", "QNLI", "WINOGRANDE"]:
+            extension = '.tsv'
+        elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+            extension = '.jsonl'
+        else:
+            raise ValueError('no such task: {}'.format(args.task_name))
         copy_dev_test(args.task_name,
+                      extension=extension,
                       from_dir=args.data_dir,
                       to_dir=outdir)
 
         num_samples = int(fraction * len(sorted_scores))
         if args.task_name in ["SNLI", "MNLI", "WINOGRANDE"]:
-            pass
-        with open(os.path.join(outdir, f"train.tsv"), "w") as outfile:
-            outfile.write(header + "\n")
+            outfile_name = os.path.join(outdir, f"train.tsv")
+        elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+            outfile_name = os.path.join(outdir, f"train.jsonl")
+        else:
+            raise ValueError('no such task {}'.format(args.task_name))
+        with open(outfile_name, "w") as outfile:
+            if args.task_name in ["SNLI", "MNLI", "WINOGRANDE"]:
+                outfile.write(header + "\n")
             selected = sorted_scores.head(n=num_samples + 1)
             if args.metric == 'mix':
                 ratios = args.mix_ratio
@@ -275,7 +289,7 @@ def write_filtered_data(args, train_dy_metrics):
                     selection_iterator.set_description(f"{args.metric} = {selected.iloc[idx][args.metric]:.4f}")
 
                 selected_id = selected.iloc[idx]["guid"]
-                if args.task_name in ["SNLI", "MNLI", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3"]:
+                if args.task_name in ["SNLI", "MNLI", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
                     selected_id = int(selected_id)
                 elif args.task_name == "WINOGRANDE":
                     selected_id = str(int(selected_id))
@@ -413,7 +427,7 @@ if __name__ == "__main__":
     parser.add_argument("--task_name",
                         "-t",
                         default="WINOGRANDE",
-                        choices=("SNLI", "MNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3"),
+                        choices=("SNLI", "MNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"),
                         help="Which task are we plotting or filtering for.")
     parser.add_argument('--metric',
                         choices=('threshold_closeness',

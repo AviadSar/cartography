@@ -37,12 +37,14 @@ glue_processors["winogrande"] = WinograndeProcessor
 glue_processors["anli_v1.0_r1"] = ANLIProcessor
 glue_processors["anli_v1.0_r2"] = ANLIProcessor
 glue_processors["anli_v1.0_r3"] = ANLIProcessor
+glue_processors["abductive_nli"] = AbductiveNLIProcessor
 
 glue_output_modes["snli"] = "classification"
 glue_output_modes["winogrande"] = "classification"
 glue_output_modes["anli_v1.0_r1"] = "classification"
 glue_output_modes["anli_v1.0_r2"] = "classification"
 glue_output_modes["anli_v1.0_r3"] = "classification"
+glue_output_modes["abductive_nli.0_r3"] = "classification"
 
 
 @dataclass(frozen=True)
@@ -108,12 +110,13 @@ def adapted_glue_convert_examples_to_features(
         len_examples = len(examples)
 
     features = []
-
+    # lengths = []
     if max_length is None:
         max_length = 0
         for example in examples:
             inputs = tokenizer.encode_plus(example.text_a, example.text_b, add_special_tokens=True)
             curr_len = len(inputs.data['input_ids'])
+            # lengths.append(curr_len)
             if curr_len > max_length:
                 max_length = curr_len
     print('tokenizer max length is: {}'.format(max_length))
@@ -216,7 +219,7 @@ def adapted_glue_compute_metrics(task_name, preds, labels):
     try:
       return glue_compute_metrics(task_name, preds, labels)
     except KeyError:
-      if task_name in ["snli", "winogrande", "toxic", "anli_v1.0_r1", "anli_v1.0_r2", "anli_v1.0_r3"]:
+      if task_name in ["snli", "winogrande", "toxic", "anli_v1.0_r1", "anli_v1.0_r2", "anli_v1.0_r3", "abductive_nli"]:
         # Since MNLI also uses accuracy.
         return glue_compute_metrics("qnli", preds, labels)
     raise KeyError(task_name)

@@ -2,6 +2,7 @@ import logging
 import random
 import re
 import tqdm
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,22 @@ def convert_string_to_unique_number(string: str) -> int:
         number = random.randint(10000, 99999)
         logger.info(f"Cannot find ID for {string}, using random number {number}.")
     return number
+
+
+def read_jsonl_task(file_path: str,
+                    guid_index: int = None,
+                    label: str = 'label',
+                    labels=[]):
+    with open(file_path, 'r') as jsonl_file:
+        i = -1
+        jsonl_dict = {}
+        for line in tqdm.tqdm([line for line in jsonl_file]):
+            i += 1
+            json_line = json.loads(line)
+            if not json_line[label] in labels:
+                continue
+            jsonl_dict[i] = line
+        return jsonl_dict, None
 
 
 def read_glue_tsv(file_path: str,

@@ -53,7 +53,7 @@ slurm_restricted_string = \
 
 filter_string = \
 'python cartography/selection/train_dy_filtering.py --plot --filter --task_name {0} --metric variability --model {1} --model_dir outputs/{2} --data_dir /cs/labs/roys/aviadsa/datasets/cartography/{3}  --plots_dir /cs/labs/roys/aviadsa/cartography/cartography/plots --filtering_output_dir /cs/labs/roys/aviadsa/datasets/cartography/filtered_datasets\n\
-python cartography/selection/train_dy_filtering.py --plot --filter --task_name {0} --metric random --model {1} --model_dir outputs/{2} --data_dir /cs/labs/roys/aviadsa/datasets/cartography/{3}  --plots_dir /cs/labs/roys/aviadsa/cartography/cartography/plots --filtering_output_dir /cs/labs/roys/aviadsa/datasets/cartography/filtered_datasets\n'
+python cartography/selection/train_dy_filtering.py --filter --task_name {0} --metric random --model {1} --model_dir outputs/{2} --data_dir /cs/labs/roys/aviadsa/datasets/cartography/{3}  --plots_dir /cs/labs/roys/aviadsa/cartography/cartography/plots --filtering_output_dir /cs/labs/roys/aviadsa/datasets/cartography/filtered_datasets\n'
 
 run_string = 'sbatch {}\n'
 
@@ -202,8 +202,12 @@ def quick_write_config(workspace, task, model, model_type, data_dir_suffix='', c
 #                    model_name='deberta-large', train_set_fraction=0.1)
 # quick_write_config(workspace='huji', task='SNLI', model='t5-large', model_type='t5', filtering='',
 #                    model_name='t5-large', train_set_fraction=0.1, num_epochs='10')
-quick_write_config(workspace='huji', task='anli_v1.0_R1', model='microsoft/deberta-large', model_type='deberta', filtering='',
-                   model_name='deberta-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='null', batch_size='2')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta', filtering='',
+                   model_name='deberta-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='201', batch_size='2')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='google/electra-large-discriminator', model_type='electra', filtering='',
+                   model_name='electra-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='201', batch_size='2')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='roberta-large', model_type='roberta', filtering='',
+                   model_name='roberta-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='201', batch_size='2')
 
 # quick_write_config(workspace='huji', task='SNLI', model='microsoft/deberta-large', data_model='microsoft/deberta-large',
 #                    model_type='deberta', filtering='variability_0.50', model_name='deberta-large',

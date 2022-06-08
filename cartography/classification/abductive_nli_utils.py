@@ -3,12 +3,15 @@ import json
 
 from transformers.data.processors.utils import DataProcessor, InputExample
 
+from cartography.classification.multiple_choice_utils import MCInputExample
+from cartography.data_utils import read_data
 
-class ANLIProcessor(DataProcessor):
+
+class AbductiveNLIProcessor(DataProcessor):
     """Processor for the SNLI data set (GLUE version)."""
 
     def get_labels(self):
-        return ["e", "n", "c"]
+        return [1, 2]
 
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
@@ -16,15 +19,27 @@ class ANLIProcessor(DataProcessor):
         for (i, line) in enumerate(lines):
             # guid = f"{set_type}-{i}" #"%s-%s" % (set_type, line[0])
             guid = i
-            text_a = line['context']
-            text_b = line['hypothesis']
+
+            context = line['obs1']
+
+            format_str = '{} {}'
+            option1 = format_str.format(line['hyp1'], line['obs2'])
+            option2 = format_str.format(line['hyp2'], line['obs2'])
+
             label = line['label']
+
+            mc_example = MCInputExample(
+                example_id=int(guid),
+                contexts=[context, context],
+                question='',
+                endings=[option1, option2],
+                label=label
+            )
 
             if label not in self.get_labels():
                 continue
 
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            examples.append(mc_example)
         return examples
 
     def get_examples(self, data_file, set_type):

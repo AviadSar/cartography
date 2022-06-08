@@ -9,7 +9,7 @@ import shutil
 
 from typing import Dict
 
-from cartography.data_utils_glue import read_glue_tsv
+from cartography.data_utils_glue import read_glue_tsv, read_jsonl_task
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,10 @@ def read_data(file_path: str,
     elif task_name == "QNLI":
         return read_glue_tsv(file_path,
                              guid_index=0)
+    elif task_name == "anli_v1.0_R1" or task_name == "anli_v1.0_R2" or task_name == "anli_v1.0_R3":
+        return read_jsonl_task(file_path, labels=['e', 'n', 'c'])
+    elif task_name == 'abductive_nli':
+        return read_jsonl_task(file_path, labels=[1, 2])
     else:
         raise NotImplementedError(f"Reader for {task_name} not implemented.")
 
@@ -71,7 +75,7 @@ def copy_dev_test(task_name: str,
     if task_name == "MNLI":
         dev_filename = "dev_matched.tsv"
         test_filename = "dev_mismatched.tsv"
-    elif task_name in ["SNLI", "QNLI", "WINOGRANDE"]:
+    elif task_name in ["SNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
         dev_filename = f"dev{extension}"
         test_filename = f"test{extension}"
     else:
