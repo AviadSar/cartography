@@ -54,6 +54,7 @@ def convert_mc_examples_to_features(
     pad_on_left=False,
     pad_token=0,
     mask_padding_with_zero=True,
+    task='winogrande'
 ) -> List[MCInputFeatures]:
     """
     Loads a data file into a list of `MCInputFeatures`
@@ -62,10 +63,36 @@ def convert_mc_examples_to_features(
     label_map = {label: i for i, label in enumerate(label_list)}
 
     features = []
+
+    if max_length is None:
+        max_length = 0
+        lengths = []
+        for (ex_index, example) in tqdm.tqdm(enumerate(examples), desc="converting MC examples to features"):
+            if ex_index % 10000 == 0:
+                logger.info("Checking example length, example %d of %d" % (ex_index, len(examples)))
+
+            for ending_idx, (context, ending) in enumerate(zip(example.contexts, example.endings)):
+                text_a = context
+                if example.question.find("_") != -1:
+                    # this is for cloze question
+                    text_b = example.question.replace("_", ending)
+                else:
+                    text_b = example.question + " " + ending
+
+                inputs = tokenizer.encode_plus(text_a, text_b, add_special_tokens=True, max_length=max_length,
+                                               return_token_type_ids=True)
+
+                curr_len = len(inputs.data['input_ids'])
+                lengths.append(curr_len)
+                if curr_len > max_length:
+                    max_length = curr_len
+        print('tokenizer max length is: {}'.format(max_length))
+
     for (ex_index, example) in tqdm.tqdm(enumerate(examples), desc="converting MC examples to features"):
         if ex_index % 10000 == 0:
             logger.info(" Writing example %d of %d" % (ex_index, len(examples)))
         choices_features = []
+
         for ending_idx, (context, ending) in enumerate(zip(example.contexts, example.endings)):
             text_a = context
             if example.question.find("_") != -1:
@@ -110,8 +137,8 @@ def convert_mc_examples_to_features(
 
         if ex_index < 2:
             logger.info("*** Example ***")
-            logger.info("winogrande_id: {}".format(example.example_id))
-            logger.info("winogrande_context: {}".format(example.contexts[0]))
+            logger.info("{}_id: {}".format(task, example.example_id))
+            logger.info("{}_context: {}".format(task, example.contexts[0]))
             for choice_idx, (input_ids, attention_mask, token_type_ids) in enumerate(choices_features):
                 logger.info(f"choice {choice_idx}: {example.endings[choice_idx]}")
                 logger.info("input_ids: {}".format(" ".join(map(str, input_ids))))

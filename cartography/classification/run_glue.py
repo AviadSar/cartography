@@ -600,8 +600,8 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
             # HACK(label indices are swapped in RoBERTa pretrained model)
             label_list[1], label_list[2] = label_list[2], label_list[1]
         examples = load_dataset(args, task, data_split)
-        if task == "winogrande":
-            print('task: winogrande')
+        if task in ["winogrande", "abductive_nli"]:
+            print('task: {}'.format(task))
             features = convert_mc_examples_to_features(
                 examples,
                 label_list,
@@ -609,7 +609,8 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
                 tokenizer,
                 pad_on_left=bool(args.model_type in ["xlnet"]),  # pad on the left for xlnet
                 pad_token=tokenizer.pad_token_id,
-                pad_token_segment_id=tokenizer.pad_token_type_id, )
+                pad_token_segment_id=tokenizer.pad_token_type_id,
+                task=task)
         else:
             features = convert_examples_to_features(
                 examples,
@@ -630,7 +631,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
         # process the dataset, and the others will use the cache
         torch.distributed.barrier()
 
-    if task == "winogrande":
+    if task in ["winogrande", "abductive_nli"]:
         return get_winogrande_tensors(features)
 
     # Convert to Tensors and build dataset

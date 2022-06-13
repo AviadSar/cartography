@@ -27,6 +27,7 @@ from cartography.classification.qnli_utils import AdaptedQnliProcessor
 from cartography.classification.snli_utils import SNLIProcessor
 from cartography.classification.winogrande_utils import WinograndeProcessor
 from cartography.classification.anli_utils import ANLIProcessor
+from cartography.classification.abductive_nli_utils import AbductiveNLIProcessor
 
 
 glue_processors["snli"] = SNLIProcessor
@@ -44,7 +45,7 @@ glue_output_modes["winogrande"] = "classification"
 glue_output_modes["anli_v1.0_r1"] = "classification"
 glue_output_modes["anli_v1.0_r2"] = "classification"
 glue_output_modes["anli_v1.0_r3"] = "classification"
-glue_output_modes["abductive_nli.0_r3"] = "classification"
+glue_output_modes["abductive_nli"] = "classification"
 
 
 @dataclass(frozen=True)

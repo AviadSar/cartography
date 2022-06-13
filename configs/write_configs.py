@@ -112,13 +112,13 @@ def write_config(file_name,
             gres,
             time,
             os.path.join(task, model_name, file_name),
-            os.path.join(task, model_name, '{}_{}_epochs'.format(file_name, num_epochs))
+            os.path.join(task, model_name, file_name)
         ))
         if data_model_name_or_path == '':
             slurm_file.write(filter_string.format(
                 task,
                 model_name,
-                os.path.join(task, model_name, '{}_{}_epochs'.format(file_name, num_epochs)),
+                os.path.join(task, model_name, file_name),
                 task
             ))
 
@@ -128,13 +128,13 @@ def write_config(file_name,
                   'a') as run_file:
             run_file.write(slurm_restricted_string.format(
                 os.path.join(task, model_name, file_name),
-                os.path.join(task, model_name, '{}_{}_epochs'.format(file_name, num_epochs))
+                os.path.join(task, model_name, file_name)
             ))
             if data_model_name_or_path == '':
                 run_file.write(filter_string.format(
                     task,
                     model_name,
-                    os.path.join(task, model_name, '{}_{}_epochs'.format(file_name, num_epochs)),
+                    os.path.join(task, model_name, file_name),
                     task
                 ))
 
@@ -144,7 +144,7 @@ def write_config(file_name,
 
 def quick_write_config(workspace, task, model, model_type, data_dir_suffix='', cache_dir_suffix='', filtering='',
                        data_model='', model_name=None, data_model_name=None, seed='42', batch_size='4', num_epochs='5',
-                       num_data_epochs='5', mem='8g', gres='gpu:rtx2080,vmem:10g', time='time=8:0:0',
+                       num_data_epochs='5', mem='16g', gres='gpu:rtx2080,vmem:10g', time='time=8:0:0',
                        train_set_fraction='1.0', max_seq_length='128'):
     if model_name is None:
         model_name = model
@@ -202,185 +202,142 @@ def quick_write_config(workspace, task, model, model_type, data_dir_suffix='', c
 #                    model_name='deberta-large', train_set_fraction=0.1)
 # quick_write_config(workspace='huji', task='SNLI', model='t5-large', model_type='t5', filtering='',
 #                    model_name='t5-large', train_set_fraction=0.1, num_epochs='10')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='microsoft/deberta-large', model_type='deberta', filtering='',
+                   model_name='deberta-large', num_epochs='5', max_seq_length='null', batch_size='2')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='google/electra-large-discriminator', model_type='electra', filtering='',
+                   model_name='electra-large', num_epochs='5', max_seq_length='null', batch_size='2')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='roberta-large', model_type='roberta', filtering='',
+                   model_name='roberta-large', num_epochs='5', max_seq_length='null', batch_size='2')
+
 quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta', filtering='',
-                   model_name='deberta-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='201', batch_size='2')
+                   model_name='deberta-large', train_set_fraction='0.5', num_epochs='5', max_seq_length='201', batch_size='2')
 quick_write_config(workspace='huji', task='anli_v1.0_R3', model='google/electra-large-discriminator', model_type='electra', filtering='',
-                   model_name='electra-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='201', batch_size='2')
+                   model_name='electra-large', train_set_fraction='0.5', num_epochs='5', max_seq_length='201', batch_size='2')
 quick_write_config(workspace='huji', task='anli_v1.0_R3', model='roberta-large', model_type='roberta', filtering='',
-                   model_name='roberta-large', train_set_fraction='1.0', num_epochs='5', max_seq_length='201', batch_size='2')
+                   model_name='roberta-large', train_set_fraction='0.5', num_epochs='5', max_seq_length='201', batch_size='2')
 
-# quick_write_config(workspace='huji', task='SNLI', model='microsoft/deberta-large', data_model='microsoft/deberta-large',
-#                    model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
-#                    data_model_name='deberta-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='microsoft/deberta-large', data_model='roberta-large',
-#                    model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
-#                    data_model_name='roberta-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='microsoft/deberta-large', data_model='google/electra-large-discriminator',
-#                    model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
-#                    data_model_name='electra-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='microsoft/deberta-large', data_model='roberta-large',
-#                    model_type='deberta', filtering='random_0.50', model_name='deberta-large',
-#                    data_model_name='roberta-large', time='time=4:0:0')
-#
-# quick_write_config(workspace='huji', task='SNLI', model='roberta-large', data_model='microsoft/deberta-large',
-#                    model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
-#                    data_model_name='deberta-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='roberta-large', data_model='roberta-large',
-#                    model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
-#                    data_model_name='roberta-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='roberta-large', data_model='google/electra-large-discriminator',
-#                    model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
-#                    data_model_name='electra-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='roberta-large', data_model='roberta-large',
-#                    model_type='roberta', filtering='random_0.50', model_name='roberta-large',
-#                    data_model_name='roberta-large', time='time=4:0:0')
-#
-# quick_write_config(workspace='huji', task='SNLI', model='google/electra-large-discriminator', data_model='microsoft/deberta-large',
-#                    model_type='electra', filtering='variability_0.50', model_name='electra-large',
-#                    data_model_name='deberta-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='google/electra-large-discriminator', data_model='roberta-large',
-#                    model_type='electra', filtering='variability_0.50', model_name='electra-large',
-#                    data_model_name='roberta-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='google/electra-large-discriminator', data_model='google/electra-large-discriminator',
-#                    model_type='electra', filtering='variability_0.50', model_name='electra-large',
-#                    data_model_name='electra-large', time='time=4:0:0')
-# quick_write_config(workspace='huji', task='SNLI', model='google/electra-large-discriminator',
-#                    data_model='roberta-large',
-#                    model_type='electra', filtering='random_0.50', model_name='electra-large',
-#                    data_model_name='roberta-large', time='time=8:0:0', seed='43')
+quick_write_config(workspace='huji', task='abductive_nli', model='microsoft/deberta-large', model_type='deberta_mc', filtering='',
+                   model_name='deberta-large', train_set_fraction='0.5', num_epochs='5', max_seq_length='null', batch_size='2')
+quick_write_config(workspace='huji', task='abductive_nli', model='google/electra-large-discriminator', model_type='electra_mc', filtering='',
+                   model_name='electra-large', train_set_fraction='0.5', num_epochs='5', max_seq_length='null', batch_size='2')
+quick_write_config(workspace='huji', task='abductive_nli', model='roberta-large', model_type='roberta_mc', filtering='',
+                   model_name='roberta-large', train_set_fraction='0.5', num_epochs='5', max_seq_length='null', batch_size='2')
 
-# write_config(file_name='huji_snli_bert_on_bert_033',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='4',
-#              num_epochs='5',
-#              seed='93078',
-#              task='SNLI',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_variability_0.33/SNLI/huji_snli_5_bert',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/swabhas/data/glue/" + TASK + "/cache_bert_on_bert_033_" + SEED',
-#              test_dir='C:\\my_documents\\datasets\\swabhas\\data\\glue\\SNLI\\diagnostic_test.tsv',
-#              model_type='bert',
-#              model_name_or_path='bert-base-uncased',
-#              data_model_name_or_path='bert-base-uncased',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=3:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='microsoft/deberta-large', data_model='microsoft/deberta-large',
+                   model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='deberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='microsoft/deberta-large', data_model='roberta-large',
+                   model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='microsoft/deberta-large', data_model='google/electra-large-discriminator',
+                   model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='electra-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='microsoft/deberta-large', data_model='roberta-large',
+                   model_type='deberta', filtering='random_0.50', model_name='deberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
 
-# write_config(file_name='huji_winogrande_bert_large',
-#              learning_rate='1.1235456034244052e-05',
-#              batch_size='4',
-#              num_epochs='5',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV',
-#              cache_dir='DATA_DIR + "/cache_roberta_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/swabhas/data/glue/SNLI/diagnostic_test.tsv',
-#              model_type='bert_mc',
-#              model_name_or_path='bert-large-uncased',
-#              data_model_name_or_path='bert-large-uncased',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=8:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='roberta-large', data_model='microsoft/deberta-large',
+                   model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='deberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='roberta-large', data_model='roberta-large',
+                   model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='roberta-large', data_model='google/electra-large-discriminator',
+                   model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='electra-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='roberta-large', data_model='roberta-large',
+                   model_type='roberta', filtering='random_0.50', model_name='roberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
 
-# write_config(file_name='huji_winogrande_roberta_on_roberta_0.50',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='4',
-#              num_epochs='10',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_variability_0.50/WINOGRANDE/huji_winogrande_roberta_large_5_epochs',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/cache_roberta_on_roberta_0.50_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/diagnostic_test.tsv',
-#              model_type='roberta_mc',
-#              model_name_or_path='roberta-large',
-#              data_model_name_or_path='roberta-large',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=4:0:0')
-#
-# write_config(file_name='huji_winogrande_roberta_on_deberta_0.50',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='4',
-#              num_epochs='10',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_variability_0.50/WINOGRANDE/huji_winogrande_deberta_large_5_epochs',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/cache_roberta_on_deberta_0.50_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/diagnostic_test.tsv',
-#              model_type='roberta_mc',
-#              model_name_or_path='roberta-large',
-#              data_model_name_or_path='microsoft/deberta-large',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=4:0:0')
-#
-# write_config(file_name='huji_winogrande_roberta_on_random_0.50',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='4',
-#              num_epochs='10',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_random_0.50/WINOGRANDE/huji_winogrande_roberta_large_5_epochs',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/cache_roberta_on_random_0.50_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/diagnostic_test.tsv',
-#              model_type='roberta_mc',
-#              model_name_or_path='roberta-large',
-#              data_model_name_or_path='roberta-large',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=4:0:0')
-#
-# write_config(file_name='huji_winogrande_deberta_on_deberta_0.50',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='2',
-#              num_epochs='10',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_variability_0.50/WINOGRANDE/huji_winogrande_deberta_large_5_epochs',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/cache_deberta_on_deberta_0.50_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/diagnostic_test.tsv',
-#              model_type='deberta_mc',
-#              model_name_or_path='microsoft/deberta-large',
-#              data_model_name_or_path='microsoft/deberta-large',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=4:0:0')
-#
-# write_config(file_name='huji_winogrande_deberta_on_roberta_0.50',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='2',
-#              num_epochs='10',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_variability_0.50/WINOGRANDE/huji_winogrande_roberta_large_5_epochs',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/cache_deberta_on_roberta_0.50_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/diagnostic_test.tsv',
-#              model_type='deberta_mc',
-#              model_name_or_path='microsoft/deberta-large',
-#              data_model_name_or_path='roberta-large',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=4:0:0')
-#
-# write_config(file_name='huji_winogrande_deberta_on_random_0.50',
-#              learning_rate='1.0708609960508476e-05',
-#              batch_size='2',
-#              num_epochs='10',
-#              seed='71789',
-#              task='WINOGRANDE',
-#              data_dir='/cs/labs/roys/aviadsa/cartography/cartography/filtered_datasets/cartography_random_0.50/WINOGRANDE/huji_winogrande_roberta_large_5_epochs',
-#              cache_dir='"/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/cache_deberta_on_random_0.50_" + SEED',
-#              test_dir='/cs/labs/roys/aviadsa/datasets/WINOGRANDE_TSV/diagnostic_test.tsv',
-#              model_type='deberta_mc',
-#              model_name_or_path='microsoft/deberta-large',
-#              data_model_name_or_path='roberta-large',
-#              gradient_accumulation_steps='128 / BATCH_SIZE',
-#              mem='8g',
-#              gres='gpu:rtx2080,vmem:10g',
-#              time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='google/electra-large-discriminator', data_model='microsoft/deberta-large',
+                   model_type='electra', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='deberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='google/electra-large-discriminator', data_model='roberta-large',
+                   model_type='electra', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='google/electra-large-discriminator', data_model='google/electra-large-discriminator',
+                   model_type='electra', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='electra-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R1', model='google/electra-large-discriminator', data_model='roberta-large',
+                   model_type='electra', filtering='random_0.50', model_name='electra-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+
+
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', data_model='microsoft/deberta-large',
+                   model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='deberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', data_model='roberta-large',
+                   model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', data_model='google/electra-large-discriminator',
+                   model_type='deberta', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='electra-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', data_model='roberta-large',
+                   model_type='deberta', filtering='random_0.50', model_name='deberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='roberta-large', data_model='microsoft/deberta-large',
+                   model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='deberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='roberta-large', data_model='roberta-large',
+                   model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='roberta-large', data_model='google/electra-large-discriminator',
+                   model_type='roberta', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='electra-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='roberta-large', data_model='roberta-large',
+                   model_type='roberta', filtering='random_0.50', model_name='roberta-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='google/electra-large-discriminator', data_model='microsoft/deberta-large',
+                   model_type='electra', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='deberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='google/electra-large-discriminator', data_model='roberta-large',
+                   model_type='electra', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='google/electra-large-discriminator', data_model='google/electra-large-discriminator',
+                   model_type='electra', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='electra-large', time='time=4:0:0')
+quick_write_config(workspace='huji', task='anli_v1.0_R3', model='google/electra-large-discriminator', data_model='roberta-large',
+                   model_type='electra', filtering='random_0.50', model_name='electra-large',
+                   data_model_name='roberta-large', time='time=4:0:0')
+
+
+quick_write_config(workspace='huji', task='abductive_nli', model='microsoft/deberta-large', data_model='microsoft/deberta-large',
+                   model_type='deberta_mc', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='deberta-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='microsoft/deberta-large', data_model='roberta-large',
+                   model_type='deberta_mc', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='roberta-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='microsoft/deberta-large', data_model='google/electra-large-discriminator',
+                   model_type='deberta_mc', filtering='variability_0.50', model_name='deberta-large',
+                   data_model_name='electra-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='microsoft/deberta-large', data_model='roberta-large',
+                   model_type='deberta_mc', filtering='random_0.50', model_name='deberta-large',
+                   data_model_name='roberta-large', max_seq_length='null', time='time=4:0:0')
+
+quick_write_config(workspace='huji', task='abductive_nli', model='roberta-large', data_model='microsoft/deberta-large',
+                   model_type='roberta_mc', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='deberta-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='roberta-large', data_model='roberta-large',
+                   model_type='roberta_mc', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='roberta-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='roberta-large', data_model='google/electra-large-discriminator',
+                   model_type='roberta_mc', filtering='variability_0.50', model_name='roberta-large',
+                   data_model_name='electra-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='roberta-large', data_model='roberta-large',
+                   model_type='roberta_mc', filtering='random_0.50', model_name='roberta-large',
+                   data_model_name='roberta-large', max_seq_length='null', time='time=4:0:0')
+
+quick_write_config(workspace='huji', task='abductive_nli', model='google/electra-large-discriminator', data_model='microsoft/deberta-large',
+                   model_type='electra_mc', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='deberta-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='google/electra-large-discriminator', data_model='roberta-large',
+                   model_type='electra_mc', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='roberta-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='google/electra-large-discriminator', data_model='google/electra-large-discriminator',
+                   model_type='electra_mc', filtering='variability_0.50', model_name='electra-large',
+                   data_model_name='electra-large', max_seq_length='null', time='time=4:0:0')
+quick_write_config(workspace='huji', task='abductive_nli', model='google/electra-large-discriminator', data_model='roberta-large',
+                   model_type='electra_mc', filtering='random_0.50', model_name='electra-large',
+                   data_model_name='roberta-large', max_seq_length='null', time='time=4:0:0')

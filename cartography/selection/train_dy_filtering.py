@@ -223,9 +223,13 @@ def write_filtered_data(args, train_dy_metrics):
     else:
         sorted_scores = train_dy_metrics.sort_values(by=[args.metric], ascending=is_ascending)
 
-    original_train_file = os.path.join(args.data_dir, f"train.tsv")
-    if args.task_name == "anli_v1.0_R1" or args.task_name == "anli_v1.0_R2" or args.task_name == "anli_v1.0_R3":
+
+    if args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
         original_train_file = os.path.join(args.data_dir, f"train.jsonl")
+    elif args.task_name in ["WINOGRANDE", "SNLI"]:
+        original_train_file = os.path.join(args.data_dir, f"train.tsv")
+    else:
+        raise ValueError('no such task: {}'.format(args.task_name))
     train_numeric, header = read_data(original_train_file, task_name=args.task_name)
 
     base_dir = os.path.basename(os.path.normpath(args.model_dir))
@@ -294,7 +298,10 @@ def write_filtered_data(args, train_dy_metrics):
                 elif args.task_name == "WINOGRANDE":
                     selected_id = str(int(selected_id))
                 record = train_numeric[selected_id]
-                outfile.write(record + "\n")
+
+                if record[-1] != '\n':
+                    record = record + '\n'
+                outfile.write(record)
 
         logger.info(f"Wrote {num_samples} samples to {outdir}.")
 
