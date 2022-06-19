@@ -56,7 +56,6 @@ class WinograndeProcessor(DataProcessor):
         examples = []
         for idx, line in tsv_dict.items():
             fields = line.strip().split("\t")
-            assert idx == fields[0]
             sentence = fields[2]
             name1 = fields[3]
             name2 = fields[4]

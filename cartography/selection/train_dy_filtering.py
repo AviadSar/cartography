@@ -239,6 +239,8 @@ def write_filtered_data(args, train_dy_metrics):
         if args.metric == 'mix':
             outdir = os.path.join(args.filtering_output_dir,
                                   f"cartography_{args.metric}_{fraction:.2f}_{'_'.join([str(ratio) for ratio in args.mix_ratio])}/{args.task_name}/{base_dir}")
+        if args.bias is not None:
+            outdir = os.path.join(args.filtering_output_dir, f"cartography_{args.metric}_{fraction:.2f}_bias_{args.bias}/{args.task_name}/{base_dir}")
         if not os.path.exists(outdir):
             os.makedirs(outdir)
 
@@ -282,6 +284,12 @@ def write_filtered_data(args, train_dy_metrics):
                 logger.info(f"Selecting both ends: {fm} = "
                             f"({hardest.head(1)[fm].values[0]:3f}: {hardest.tail(1)[fm].values[0]:3f}) "
                             f"& ({easiest.head(1)[fm].values[0]:3f}: {easiest.tail(1)[fm].values[0]:3f})")
+            if args.bias is not None:
+                favored = sorted_scores.head(n=num_samples + 1)
+                unfavored = sorted_scores.tail(n=int((1 - fraction) * len(sorted_scores)))
+                list_favored = [favored] * args.bias
+                selected = pd.concat(list_favored + [unfavored])
+                logger.info(f"Selecting by metric: {args.metric}, with bias of: {args.bias}")
 
             selection_iterator = tqdm.tqdm(range(len(selected)))
             for idx in selection_iterator:
@@ -450,6 +458,10 @@ if __name__ == "__main__":
                         nargs='+',
                         default=[],
                         help="ratio of data filtered by different metrics", )
+    parser.add_argument('--bias',
+                        type=int,
+                        default=None,
+                        help="how much more examples of the chosen metric should be in the dataset", )
     parser.add_argument("--include_ci",
                         action="store_true",
                         help="Compute the confidence interval for variability.")

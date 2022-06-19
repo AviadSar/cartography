@@ -88,9 +88,11 @@ def read_glue_tsv(file_path: str,
                 guid = i
             else:
                 guid = fields[guid_index]  # PairID.
-            if guid in tsv_dict:
-                logger.info(f"Found clash in IDs ... skipping example {guid}.")
-                continue
+            # TODO: resolve no skip. basically we want to allow ids to be identicall in our filtered sets,
+            #  but not in original datasets
+            # if guid in tsv_dict:
+            #     logger.info(f"Found clash in IDs ... skipping example {guid}.")
+            #     continue
             tsv_dict[guid] = reformatted_line.strip()
 
     logger.info(f"Read {len(tsv_dict)} valid examples, with unique IDS, out of {i} from {file_path}")

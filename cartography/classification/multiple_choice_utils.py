@@ -79,8 +79,7 @@ def convert_mc_examples_to_features(
                 else:
                     text_b = example.question + " " + ending
 
-                inputs = tokenizer.encode_plus(text_a, text_b, add_special_tokens=True, max_length=max_length,
-                                               return_token_type_ids=True)
+                inputs = tokenizer.encode_plus(text_a, text_b, add_special_tokens=True, return_token_type_ids=True)
 
                 curr_len = len(inputs.data['input_ids'])
                 lengths.append(curr_len)

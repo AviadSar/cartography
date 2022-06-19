@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 def read_data(file_path: str,
               task_name: str,
-              guid_as_int: bool = False):
+              guid_as_int: bool = False,
+              serial_index: bool = True):
     """
     Reads task-specific datasets from corresponding GLUE-style TSV files.
     """
@@ -29,13 +30,19 @@ def read_data(file_path: str,
                              guid_index=0,
                              guid_as_int=guid_as_int)
     elif task_name == "SNLI":
+        guid_index = 8
+        if serial_index:
+            guid_index = None
         return read_glue_tsv(file_path,
-                             guid_index=8,
+                             guid_index=guid_index,
                              label_index=0,
-                             guid_as_int=True)
+                             guid_as_int=False)
     elif task_name == "WINOGRANDE":
+        guid_index = 0
+        if serial_index:
+            guid_index = None
         return read_glue_tsv(file_path,
-                             guid_index=0,
+                             guid_index=guid_index,
                              guid_as_int=False)
     elif task_name == "QNLI":
         return read_glue_tsv(file_path,
