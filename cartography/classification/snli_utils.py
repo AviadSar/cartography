@@ -17,7 +17,7 @@ class SNLIProcessor(DataProcessor):
                 continue
 
             # guid = f"{set_type}-{i}" #"%s-%s" % (set_type, line[0])
-            guid = line[8]
+            guid = i
             text_a = line[5]
             text_b = line[6]
             label = line[0]

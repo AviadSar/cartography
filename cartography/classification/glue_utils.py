@@ -167,10 +167,7 @@ def adapted_glue_convert_examples_to_features(
         else:
             raise KeyError(output_mode)
 
-        if task.lower() == 'snli':
-            example_int_id = convert_string_to_unique_number(example.guid)
-        else:
-            example_int_id = example.guid
+        example_int_id = example.guid
         if ex_index < 5:
             logger.info("*** Example ***")
             logger.info(f"guid: {example_int_id}")

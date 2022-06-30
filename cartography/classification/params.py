@@ -78,6 +78,9 @@ class Params:
         self.evaluate_during_training_epoch: bool = configs.get("evaluate_during_training_epoch",
                                                                 False)
 
+        # how many steps between evaluations
+        self.eval_steps: int = configs.get("eval_steps", 0)
+
         # Set this flag if you are using an uncased model.
         self.do_lower_case: bool = configs.get("do_lower_case", True)
 
@@ -90,6 +93,12 @@ class Params:
         # Number of updates steps to accumulate before
         # performing a backward/update pass.
         self.gradient_accumulation_steps: int = int(configs.get("gradient_accumulation_steps", 1))
+
+        self.granularity: int = configs.get("granularity", None)
+
+        self.metric: str = configs.get("metric", None)
+
+        self.td_dir: str = configs.get("td_dir", None)
 
         # The initial learning rate for Adam.
         self.learning_rate: float = configs.get("learning_rate", 1e-5)
@@ -104,7 +113,10 @@ class Params:
         self.max_grad_norm: float = configs.get("max_grad_norm", 1.0)
 
         # Total number of training epochs to perform.
-        self.num_train_epochs: float = configs.get("num_train_epochs", 3.0)
+        self.num_train_epochs: float = configs.get("num_train_epochs", 5.0)
+
+        # Total number of eval cycles to perform.
+        self.num_eval_cycles: float = configs.get("num_eval_cycles", 5.0)
 
         # how much of the train set to use
         self.train_set_fraction: float = configs.get("train_set_fraction", 1.0)

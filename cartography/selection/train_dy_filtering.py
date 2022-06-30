@@ -300,11 +300,7 @@ def write_filtered_data(args, train_dy_metrics):
                 else:
                     selection_iterator.set_description(f"{args.metric} = {selected.iloc[idx][args.metric]:.4f}")
 
-                selected_id = selected.iloc[idx]["guid"]
-                if args.task_name in ["SNLI", "MNLI", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
-                    selected_id = int(selected_id)
-                elif args.task_name == "WINOGRANDE":
-                    selected_id = str(int(selected_id))
+                selected_id = int(selected.iloc[idx]["guid"])
                 record = train_numeric[selected_id]
 
                 if record[-1] != '\n':

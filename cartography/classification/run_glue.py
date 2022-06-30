@@ -39,6 +39,7 @@ import sentencepiece
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
+from transformers.data.processors.utils import InputExample
 from tqdm import tqdm, trange
 
 from transformers import (
@@ -79,9 +80,12 @@ from cartography.classification.models import (
     AdaptedElectraForMultipleChoice,
 )
 from cartography.classification.multiple_choice_utils import convert_mc_examples_to_features
+from cartography.classification.multiple_choice_utils import MCInputExample
 from cartography.classification.params import Params, save_args_to_file
+from cartography.classification.samplers import EvenRandomSampler
 
-from cartography.selection.selection_utils import log_training_dynamics
+from cartography.selection.selection_utils import log_training_dynamics, read_training_dynamics
+from cartography.selection.train_dy_filtering import compute_train_dy_metrics
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -149,17 +153,18 @@ def train(args, train_dataset, model, tokenizer):
         tb_writer = SummaryWriter()
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    train_sampler = RandomSampler(
-        train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-    train_dataloader = DataLoader(
-        train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+    train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+    if args.granularity is not None:
+        train_sampler = EvenRandomSampler(train_dataset,
+                                          dividends=args.gradient_accumulation_steps * args.per_gpu_train_batch_size,
+                                          granularity=args.granularity)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
-    if args.max_steps > 0:
-        t_total = args.max_steps
-        args.num_train_epochs = args.max_steps // (
-                len(train_dataloader) // args.gradient_accumulation_steps) + 1
-    else:
-        t_total = (len(train_dataloader) // args.gradient_accumulation_steps + 1) * args.num_train_epochs
+    if args.max_steps <= 0:
+        args.max_steps = args.eval_steps * args.num_eval_cycles
+
+    t_total = args.max_steps
+    args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
 
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
@@ -209,6 +214,7 @@ def train(args, train_dataset, model, tokenizer):
     # Train!
     logger.info("***** Running training *****")
     logger.info("  Num examples = %d", len(train_dataset))
+    logger.info("  Num Eval Cycles = %d", args.num_eval_cycles)
     logger.info("  Num Epochs = %d", args.num_train_epochs)
     logger.info("  Instantaneous batch size per GPU = %d", args.per_gpu_train_batch_size)
     logger.info(
@@ -228,15 +234,14 @@ def train(args, train_dataset, model, tokenizer):
         # set global_step to gobal_step of last saved checkpoint from model path
         global_step = int(args.model_name_or_path.split("-")[-1].split("/")[0])
         epochs_trained = global_step // (len(train_dataloader) // args.gradient_accumulation_steps)
-        steps_trained_in_this_epoch = global_step % (
-                len(train_dataloader) // args.gradient_accumulation_steps)
+        steps_trained_in_this_epoch = (global_step * args.gradient_accumulation_steps) % len(train_dataloader)
 
         logger.info(f"  Continuing training from checkpoint, will skip to saved global_step")
         logger.info(f"  Continuing training from epoch {epochs_trained}")
         logger.info(f"  Continuing training from global step {global_step}")
         logger.info(f"  Will skip the first {steps_trained_in_this_epoch} steps in the first epoch")
 
-    tr_loss, logging_loss, epoch_loss = 0.0, 0.0, 0.0
+    tr_loss, logging_loss, epoch_loss, eval_cycle_loss = 0.0, 0.0, 0.0, 0.0
     model.zero_grad()
     train_iterator = trange(epochs_trained,
                             int(args.num_train_epochs),
@@ -246,9 +251,12 @@ def train(args, train_dataset, model, tokenizer):
                             ncols=100)
     set_seed(args)  # Added here for reproductibility
     best_dev_performance = 0
-    best_epoch = epochs_trained
+    best_eval_cycle = epochs_trained
 
     train_acc = 0.0
+
+    eval_cycle = 0
+
     for epoch, _ in enumerate(train_iterator):
         epoch_iterator = tqdm(train_dataloader,
                               desc="Iteration",
@@ -256,11 +264,13 @@ def train(args, train_dataset, model, tokenizer):
                               mininterval=10,
                               ncols=100)
 
-        train_iterator.set_description(f"train_epoch: {epoch} train_acc: {train_acc:.4f}")
         train_ids = None
         train_golds = None
         train_logits = None
         train_losses = None
+
+        train_iterator.set_description(f"train_epoch: {epoch} train_acc: {train_acc:.4f}")
+
         for step, batch in enumerate(epoch_iterator):
             # Skip past any already trained steps if resuming training
             if steps_trained_in_this_epoch > 0:
@@ -355,49 +365,58 @@ def train(args, train_dataset, model, tokenizer):
                     torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
                     logger.info("Saving optimizer and scheduler states to %s", output_dir)
 
+                if (
+                        # Only evaluate when single GPU otherwise metrics may not average well
+                        args.local_rank == -1 and
+                        args.eval_steps > 0 and
+                        global_step % args.eval_steps == 0
+                ):
+                    #### Post eval-cycle ####
+                    # Only evaluate when single GPU otherwise metrics may not average well
+                    if args.local_rank == -1 and args.evaluate_during_training:
+                        best_dev_performance, best_eval_cycle = save_model(
+                            args, model, tokenizer, eval_cycle, best_eval_cycle, best_dev_performance)
+
+                    train_result = compute_metrics(args.task_name, np.argmax(train_logits, axis=1), train_golds)
+                    train_acc = train_result["acc"]
+
+                    eval_cycle_log = {"eval_cycle": eval_cycle,
+                                 "train_acc": train_acc,
+                                 "best_dev_performance": best_dev_performance,
+                                 "avg_batch_loss": (tr_loss - eval_cycle_loss) / args.eval_steps,
+                                 "learning_rate": scheduler.get_lr()[0], }
+                    eval_cycle_loss = tr_loss
+
+                    logger.info(f"  End of eval cycle : {eval_cycle}")
+                    with open(os.path.join(args.output_dir, f"eval_metrics_train.json"), "a") as toutfile:
+                        toutfile.write(json.dumps(eval_cycle_log) + "\n")
+                    for key, value in eval_cycle_log.items():
+                        tb_writer.add_scalar(key, value, global_step)
+                        logger.info(f"  {key}: {value:.6f}")
+
+                    eval_cycle += 1
+
+                    if args.max_steps > 0 and global_step > args.max_steps:
+                        train_iterator.close()
+                        break
+                    elif args.evaluate_during_training and eval_cycle - best_eval_cycle >= args.patience:
+                        logger.info(f"Ran out of patience. Best eval_cycle was {best_eval_cycle}. "
+                                    f"Stopping training at eval_cycle {eval_cycle} out of {args.num_eval_cycles} epochs.")
+                        train_iterator.close()
+                        break
+
             epoch_iterator.set_description(f"lr = {scheduler.get_lr()[0]:.8f}, "
                                            f"loss = {(tr_loss - epoch_loss) / (step + 1):.4f}")
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
                 break
-
-        #### Post epoch eval ####
-        # Only evaluate when single GPU otherwise metrics may not average well
-        if args.local_rank == -1 and args.evaluate_during_training:
-            best_dev_performance, best_epoch = save_model(
-                args, model, tokenizer, epoch, best_epoch, best_dev_performance)
-
-        # Keep track of training dynamics.
-        log_training_dynamics(output_dir=args.output_dir,
-                              epoch=epoch,
-                              train_ids=list(train_ids),
-                              train_logits=list(train_logits),
-                              train_golds=list(train_golds))
-        train_result = compute_metrics(args.task_name, np.argmax(train_logits, axis=1), train_golds)
-        train_acc = train_result["acc"]
-
-        epoch_log = {"epoch": epoch,
-                     "train_acc": train_acc,
-                     "best_dev_performance": best_dev_performance,
-                     "avg_batch_loss": (tr_loss - epoch_loss) / args.per_gpu_train_batch_size,
-                     "learning_rate": scheduler.get_lr()[0], }
-        epoch_loss = tr_loss
-
-        logger.info(f"  End of epoch : {epoch}")
-        with open(os.path.join(args.output_dir, f"eval_metrics_train.json"), "a") as toutfile:
-            toutfile.write(json.dumps(epoch_log) + "\n")
-        for key, value in epoch_log.items():
-            tb_writer.add_scalar(key, value, global_step)
-            logger.info(f"  {key}: {value:.6f}")
-
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
-        elif args.evaluate_during_training and epoch - best_epoch >= args.patience:
-            logger.info(f"Ran out of patience. Best epoch was {best_epoch}. "
-                        f"Stopping training at epoch {epoch} out of {args.num_train_epochs} epochs.")
-            train_iterator.close()
-            break
+        else:
+            # Keep track of training dynamics.
+            log_training_dynamics(output_dir=args.output_dir,
+                                  epoch=epoch,
+                                  train_ids=list(train_ids),
+                                  train_logits=list(train_logits),
+                                  train_golds=list(train_golds))
 
     if args.local_rank in [-1, 0]:
         tb_writer.close()
@@ -528,6 +547,33 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
     return results, all_predictions
 
 
+def sort_by_td(examples, args):
+    training_dynamics = read_training_dynamics(args.td_dir,
+                                               strip_last=True if args.task_name in ["QNLI"] else False)
+    total_epochs = len(list(training_dynamics.values())[0]["logits"])
+    args.burn_out = total_epochs
+    train_dy_metrics, _ = compute_train_dy_metrics(training_dynamics, args)
+
+    sorted_scores = train_dy_metrics.sort_values(by=[args.metric], ascending=False)
+
+    example_dict = {}
+    for example in examples:
+        if isinstance(example, InputExample):
+            example_dict[example.guid] = example
+        elif isinstance(example, MCInputExample):
+            example_dict[example.example_id] = example
+        else:
+            raise ValueError('no such example type {}'.format(type(example)))
+
+    sorted_examples = []
+    selection_iterator = tqdm(range(len(sorted_scores)))
+    for idx in selection_iterator:
+        id = int(sorted_scores.iloc[idx]["guid"])
+        sorted_examples.append(example_dict[id])
+
+    return sorted_examples
+
+
 def load_dataset(args, task, eval_split="train"):
     processor = processors[task]()
     if eval_split == "train":
@@ -535,6 +581,8 @@ def load_dataset(args, task, eval_split="train"):
             examples = processor.get_train_examples(args.data_dir)
         else:
             examples = processor.get_examples(args.train, "train")
+        if args.granularity is not None:
+            examples = sort_by_td(examples, args)
     elif "dev" in eval_split:
         if args.dev is None:
             examples = processor.get_dev_examples(args.data_dir)
