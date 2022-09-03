@@ -28,6 +28,8 @@ from cartography.classification.snli_utils import SNLIProcessor
 from cartography.classification.winogrande_utils import WinograndeProcessor
 from cartography.classification.anli_utils import ANLIProcessor
 from cartography.classification.abductive_nli_utils import AbductiveNLIProcessor
+from cartography.classification.hellaswag_utils import HellaSwagProcessor
+from cartography.classification.boolq_utils import BoolQProcessor
 
 
 glue_processors["snli"] = SNLIProcessor
@@ -39,6 +41,8 @@ glue_processors["anli_v1.0_r1"] = ANLIProcessor
 glue_processors["anli_v1.0_r2"] = ANLIProcessor
 glue_processors["anli_v1.0_r3"] = ANLIProcessor
 glue_processors["abductive_nli"] = AbductiveNLIProcessor
+glue_processors["hellaswag"] = HellaSwagProcessor
+glue_processors["boolq"] = BoolQProcessor
 
 glue_output_modes["snli"] = "classification"
 glue_output_modes["winogrande"] = "classification"
@@ -46,6 +50,8 @@ glue_output_modes["anli_v1.0_r1"] = "classification"
 glue_output_modes["anli_v1.0_r2"] = "classification"
 glue_output_modes["anli_v1.0_r3"] = "classification"
 glue_output_modes["abductive_nli"] = "classification"
+glue_output_modes["hellaswag"] = "classification"
+glue_output_modes["boolq"] = "classification"
 
 
 @dataclass(frozen=True)
@@ -130,7 +136,7 @@ def adapted_glue_convert_examples_to_features(
             example = processor.get_example_from_tensor_dict(example)
             example = processor.tfds_map(example)
 
-        inputs = tokenizer.encode_plus(example.text_a, example.text_b, add_special_tokens=True, max_length=max_length,)
+        inputs = tokenizer.encode_plus(example.text_a, example.text_b, add_special_tokens=True, max_length=max_length, truncation=True)
 
         if 'token_type_ids' in inputs:
             input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
@@ -217,7 +223,7 @@ def adapted_glue_compute_metrics(task_name, preds, labels):
     try:
       return glue_compute_metrics(task_name, preds, labels)
     except KeyError:
-      if task_name in ["snli", "winogrande", "toxic", "anli_v1.0_r1", "anli_v1.0_r2", "anli_v1.0_r3", "abductive_nli"]:
+      if task_name in ["snli", "winogrande", "toxic", "anli_v1.0_r1", "anli_v1.0_r2", "anli_v1.0_r3", "abductive_nli", "hellaswag", "boolq"]:
         # Since MNLI also uses accuracy.
         return glue_compute_metrics("qnli", preds, labels)
     raise KeyError(task_name)

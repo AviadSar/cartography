@@ -82,7 +82,7 @@ from cartography.classification.models import (
 from cartography.classification.multiple_choice_utils import convert_mc_examples_to_features
 from cartography.classification.multiple_choice_utils import MCInputExample
 from cartography.classification.params import Params, save_args_to_file
-from cartography.classification.samplers import EvenRandomSampler
+from cartography.classification.samplers import EvenRandomSampler, DynamicTrainingSampler
 
 from cartography.selection.selection_utils import log_training_dynamics, read_training_dynamics
 from cartography.selection.train_dy_filtering import compute_train_dy_metrics
@@ -158,6 +158,8 @@ def train(args, train_dataset, model, tokenizer):
         train_sampler = EvenRandomSampler(train_dataset,
                                           dividends=args.gradient_accumulation_steps * args.per_gpu_train_batch_size,
                                           granularity=args.granularity)
+    elif args.favored_fraction is not None:
+        train_sampler = DynamicTrainingSampler(train_dataset, args=args)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
     if args.max_steps <= 0:
@@ -375,7 +377,7 @@ def train(args, train_dataset, model, tokenizer):
                     # Only evaluate when single GPU otherwise metrics may not average well
                     if args.local_rank == -1 and args.evaluate_during_training:
                         best_dev_performance, best_eval_cycle = save_model(
-                            args, model, tokenizer, eval_cycle, best_eval_cycle, best_dev_performance)
+                            args, model, tokenizer, eval_cycle, best_eval_cycle, best_dev_performance, eval_cycle)
 
                     train_result = compute_metrics(args.task_name, np.argmax(train_logits, axis=1), train_golds)
                     train_acc = train_result["acc"]
@@ -388,8 +390,12 @@ def train(args, train_dataset, model, tokenizer):
                     eval_cycle_loss = tr_loss
 
                     logger.info(f"  End of eval cycle : {eval_cycle}")
-                    with open(os.path.join(args.output_dir, f"eval_metrics_train.json"), "a") as toutfile:
-                        toutfile.write(json.dumps(eval_cycle_log) + "\n")
+                    if eval_cycle == 0:
+                        with open(os.path.join(args.output_dir, f"eval_metrics_train.json"), "w") as toutfile:
+                            toutfile.write(json.dumps(eval_cycle_log) + "\n")
+                    else:
+                        with open(os.path.join(args.output_dir, f"eval_metrics_train.json"), "a") as toutfile:
+                            toutfile.write(json.dumps(eval_cycle_log) + "\n")
                     for key, value in eval_cycle_log.items():
                         tb_writer.add_scalar(key, value, global_step)
                         logger.info(f"  {key}: {value:.6f}")
@@ -421,11 +427,14 @@ def train(args, train_dataset, model, tokenizer):
     if args.local_rank in [-1, 0]:
         tb_writer.close()
 
+    if args.save_model:
+        model.load_state_dict(torch.load(os.path.join(args.model_weights_output_dir, "model_weights.bin")))
+
     return global_step, tr_loss / global_step
 
 
-def save_model(args, model, tokenizer, epoch, best_epoch, best_dev_performance):
-    results, _ = evaluate(args, model, tokenizer, prefix="in_training")
+def save_model(args, model, tokenizer, epoch, best_epoch, best_dev_performance, eval_cycle=None):
+    results, _ = evaluate(args, model, tokenizer, prefix="in_training", eval_cycle=eval_cycle)
     # TODO(SS): change hard coding `acc` as the desired metric, might not work for all tasks.
     desired_metric = "acc"
     dev_performance = results.get(desired_metric)
@@ -435,17 +444,18 @@ def save_model(args, model, tokenizer, epoch, best_epoch, best_dev_performance):
 
         # Save model checkpoint
         # Take care of distributed/parallel training
-        model_to_save = (model.module if hasattr(model, "module") else model)
-        # model_to_save.save_pretrained(args.output_dir)
-        # tokenizer.save_pretrained(args.output_dir)
-        torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
+        if args.save_model:
+            if not os.path.exists(args.model_weights_output_dir) and args.local_rank in [-1, 0]:
+                os.makedirs(args.model_weights_output_dir)
+            torch.save(model.state_dict(), os.path.join(args.model_weights_output_dir, "model_weights.bin"))
+            torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         logger.info(f"*** Found BEST model, and saved checkpoint. "
                     f"BEST dev performance : {dev_performance:.4f} ***")
     return best_dev_performance, best_epoch
 
 
-def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
+def evaluate(args, model, tokenizer, prefix="", eval_split="dev", eval_cycle=None):
     # We do not really need a loop to handle MNLI double evaluation (matched, mis-matched).
     eval_task_names = (args.task_name,)
     eval_outputs_dirs = (args.output_dir,)
@@ -530,8 +540,11 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
 
         # predictions
         all_predictions[eval_task] = []
-        output_pred_file = os.path.join(
-            eval_output_dir, f"predictions_{eval_task}_{eval_split}_{prefix}.lst")
+        output_pred_directory = os.path.join(eval_output_dir, 'eval_dynamics')
+        if not os.path.exists(output_pred_directory):
+            os.makedirs(output_pred_directory)
+        output_pred_file = os.path.join(output_pred_directory,
+                                        f"{'eval_cycle_' + str(eval_cycle) +'_' if eval_cycle is not None else ''}predictions_{eval_task}_{eval_split}_{prefix}.jsonl")
         with open(output_pred_file, "w") as writer:
             logger.info(f"***** Write {eval_task} {eval_split} predictions {prefix} *****")
             for ex_id, pred, gold, max_conf, prob in zip(
@@ -548,10 +561,10 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev"):
 
 
 def sort_by_td(examples, args):
-    training_dynamics = read_training_dynamics(args.td_dir,
-                                               strip_last=True if args.task_name in ["QNLI"] else False)
+    training_dynamics = read_training_dynamics(args.td_dir)
     total_epochs = len(list(training_dynamics.values())[0]["logits"])
     args.burn_out = total_epochs
+    args.include_ci = False
     train_dy_metrics, _ = compute_train_dy_metrics(training_dynamics, args)
 
     sorted_scores = train_dy_metrics.sort_values(by=[args.metric], ascending=False)
@@ -648,7 +661,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
             # HACK(label indices are swapped in RoBERTa pretrained model)
             label_list[1], label_list[2] = label_list[2], label_list[1]
         examples = load_dataset(args, task, data_split)
-        if task in ["winogrande", "abductive_nli"]:
+        if task in ["winogrande", "abductive_nli", "hellaswag"]:
             print('task: {}'.format(task))
             features = convert_mc_examples_to_features(
                 examples,
@@ -679,7 +692,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
         # process the dataset, and the others will use the cache
         torch.distributed.barrier()
 
-    if task in ["winogrande", "abductive_nli"]:
+    if task in ["winogrande", "abductive_nli", "hellaswag"]:
         return get_winogrande_tensors(features)
 
     # Convert to Tensors and build dataset
@@ -807,19 +820,19 @@ def run_transformer(args):
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
 
         if not args.evaluate_during_training:
-            logger.info("Saving model checkpoint to %s", args.output_dir)
+            # logger.info("Saving model checkpoint to %s", args.output_dir)
             # Save a trained model, configuration and tokenizer using `save_pretrained()`.
             # They can then be reloaded using `from_pretrained()`
 
             # Take care of distributed/parallel training
-            model_to_save = (model.module if hasattr(model, "module") else model)
+            # model_to_save = (model.module if hasattr(model, "module") else model)
             # model_to_save.save_pretrained(args.output_dir)
             # tokenizer.save_pretrained(args.output_dir)
 
             # Good practice: save your training arguments together with the trained model
             torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
-        logger.info(" **** Done with training ****")
+        logger.info("**** Done with training ****")
 
     # Evaluation
     eval_splits = []
@@ -829,7 +842,6 @@ def run_transformer(args):
         eval_splits.append("test")
 
     if args.do_test or args.do_eval and args.local_rank in [-1, 0]:
-
         tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
         checkpoints = [args.output_dir]
         if args.eval_all_checkpoints:

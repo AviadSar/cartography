@@ -36,7 +36,7 @@ if __name__ == "__main__":
   parser.add_argument("--task_name",
                       "-t",
                       default="SNLI",
-                      choices=("SNLI", "MNLI", "WINOGRANDE", "QNLI", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"),
+                      choices=("SNLI", "MNLI", "WINOGRANDE", "QNLI", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"),
                       help="Name of GLUE-style task.",)
   parser.add_argument("--seed",
                       type=int,
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # Dev and test need not be subsampled.
     if args.task_name in ["SNLI", "QNLI", "WINOGRANDE"]:
         extension = '.tsv'
-    elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+    elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"]:
         extension = '.jsonl'
     else:
         raise ValueError('no such task: {}'.format(args.task_name))

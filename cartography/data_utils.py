@@ -51,6 +51,10 @@ def read_data(file_path: str,
         return read_jsonl_task(file_path, labels=['e', 'n', 'c'])
     elif task_name == 'abductive_nli':
         return read_jsonl_task(file_path, labels=[1, 2])
+    elif task_name == 'hellaswag':
+        return read_jsonl_task(file_path, labels=[0, 1, 2, 3])
+    elif task_name == 'boolq':
+        return read_jsonl_task(file_path, labels=[True, False])
     else:
         raise NotImplementedError(f"Reader for {task_name} not implemented.")
 
@@ -82,7 +86,7 @@ def copy_dev_test(task_name: str,
     if task_name == "MNLI":
         dev_filename = "dev_matched.tsv"
         test_filename = "dev_mismatched.tsv"
-    elif task_name in ["SNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+    elif task_name in ["SNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"]:
         dev_filename = f"dev{extension}"
         test_filename = f"test{extension}"
     else:

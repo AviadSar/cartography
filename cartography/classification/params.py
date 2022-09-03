@@ -98,7 +98,13 @@ class Params:
 
         self.metric: str = configs.get("metric", None)
 
+        self.bias: float = configs.get("bias", None)
+
+        self.favored_fraction: float = configs.get("favored_fraction", None)
+
         self.td_dir: str = configs.get("td_dir", None)
+
+        self.start_dt_epoch: int = configs.get("start_dt_epoch", 1)
 
         # The initial learning rate for Adam.
         self.learning_rate: float = configs.get("learning_rate", 1e-5)
@@ -136,6 +142,9 @@ class Params:
 
         # Save checkpoint every X updates steps.
         self.save_steps: int = configs.get("save_steps", 0)
+
+        # Whether or not to save the trained model at all
+        self.save_model: bool = configs.get("save_model", True)
 
         # Evaluate all checkpoints starting with the same prefix as
         # model_name ending and ending with step number

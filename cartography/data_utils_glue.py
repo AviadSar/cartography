@@ -3,6 +3,7 @@ import random
 import re
 import tqdm
 import json
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,12 @@ def read_jsonl_task(file_path: str,
                     labels=[]):
     with open(file_path, 'r') as jsonl_file:
         i = -1
-        jsonl_dict = {}
+        jsonl_dict = OrderedDict
         for line in tqdm.tqdm([line for line in jsonl_file]):
             i += 1
             json_line = json.loads(line)
             if not json_line[label] in labels:
+                i -= 1
                 continue
             jsonl_dict[i] = line
         return jsonl_dict, None
@@ -55,7 +57,7 @@ def read_glue_tsv(file_path: str,
       - a mapping between the example ID and the entire line as a string.
       - the header of the TSV file.
     """
-    tsv_dict = {}
+    tsv_dict = OrderedDict()
 
     i = -1
     with open(file_path, 'r') as tsv_file:
@@ -82,10 +84,11 @@ def read_glue_tsv(file_path: str,
 
             if label == "-" or label == "":
                 logger.info(f"Skippping line: {line}")
+                i -= 1
                 continue
 
             if guid_index is None:
-                guid = i
+                guid = i - 1
             else:
                 guid = fields[guid_index]  # PairID.
             # TODO: resolve no skip. basically we want to allow ids to be identicall in our filtered sets,

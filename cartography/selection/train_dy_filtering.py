@@ -108,9 +108,10 @@ def compute_train_dy_metrics(training_dynamics, args):
         logger.info(f"Computing training dynamics across {num_tot_epochs} epochs")
     logger.info("Metrics computed: confidence, variability, correctness, forgetfulness, threshold_closeness")
 
-    logits = {i: [] for i in range(num_tot_epochs)}
-    targets = {i: [] for i in range(num_tot_epochs)}
-    training_accuracy = defaultdict(float)
+    # part of original library but never used
+    # logits = {i: [] for i in range(num_tot_epochs)}
+    # targets = {i: [] for i in range(num_tot_epochs)}
+    # training_accuracy = defaultdict(float)
 
     for guid in tqdm.tqdm(training_dynamics):
         correctness_trend = []
@@ -131,9 +132,10 @@ def compute_train_dy_metrics(training_dynamics, args):
             is_correct = (prediction == record["gold"]).item()
             correctness_trend.append(is_correct)
 
-            training_accuracy[i] += is_correct
-            logits[i].append(epoch_logits)
-            targets[i].append(record["gold"])
+            # part of original library but never used
+            # training_accuracy[i] += is_correct
+            # logits[i].append(epoch_logits)
+            # targets[i].append(record["gold"])
 
         if args.burn_out < num_tot_epochs:
             correctness_trend = correctness_trend[:args.burn_out]
@@ -165,13 +167,16 @@ def compute_train_dy_metrics(training_dynamics, args):
                         forgetfulness_[guid],
                         ] for i, guid in enumerate(correctness_)], columns=column_names)
 
-    df_train = pd.DataFrame([[i,
-                              loss(torch.Tensor(logits[i]), torch.LongTensor(targets[i])).item() / len(
-                                  training_dynamics),
-                              training_accuracy[i] / len(training_dynamics)
-                              ] for i in range(num_tot_epochs)],
-                            columns=['epoch', 'loss', 'train_acc'])
-    return df, df_train
+    # part of original library but never used
+    # df_train = pd.DataFrame([[i,
+    #                           loss(torch.Tensor(logits[i]), torch.LongTensor(targets[i])).item() / len(
+    #                               training_dynamics),
+    #                           training_accuracy[i] / len(training_dynamics)
+    #                           ] for i in range(num_tot_epochs)],
+    #                         columns=['epoch', 'loss', 'train_acc'])
+    # return df, df_train
+
+    return df, None
 
 
 def consider_ascending_order(filtering_metric: str) -> bool:
@@ -224,7 +229,7 @@ def write_filtered_data(args, train_dy_metrics):
         sorted_scores = train_dy_metrics.sort_values(by=[args.metric], ascending=is_ascending)
 
 
-    if args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+    if args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"]:
         original_train_file = os.path.join(args.data_dir, f"train.jsonl")
     elif args.task_name in ["WINOGRANDE", "SNLI"]:
         original_train_file = os.path.join(args.data_dir, f"train.tsv")
@@ -247,7 +252,7 @@ def write_filtered_data(args, train_dy_metrics):
         # Dev and test need not be subsampled.
         if args.task_name in ["SNLI", "QNLI", "WINOGRANDE"]:
             extension = '.tsv'
-        elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+        elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"]:
             extension = '.jsonl'
         else:
             raise ValueError('no such task: {}'.format(args.task_name))
@@ -259,7 +264,7 @@ def write_filtered_data(args, train_dy_metrics):
         num_samples = int(fraction * len(sorted_scores))
         if args.task_name in ["SNLI", "MNLI", "WINOGRANDE"]:
             outfile_name = os.path.join(outdir, f"train.tsv")
-        elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"]:
+        elif args.task_name in ["anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"]:
             outfile_name = os.path.join(outdir, f"train.jsonl")
         else:
             raise ValueError('no such task {}'.format(args.task_name))
@@ -438,7 +443,7 @@ if __name__ == "__main__":
     parser.add_argument("--task_name",
                         "-t",
                         default="WINOGRANDE",
-                        choices=("SNLI", "MNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli"),
+                        choices=("SNLI", "MNLI", "QNLI", "WINOGRANDE", "anli_v1.0_R1", "anli_v1.0_R2", "anli_v1.0_R3", "abductive_nli", "hellaswag", "boolq"),
                         help="Which task are we plotting or filtering for.")
     parser.add_argument('--metric',
                         choices=('threshold_closeness',

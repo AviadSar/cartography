@@ -46,7 +46,10 @@ def read_training_dynamics(model_dir: os.path,
   train_dynamics = {}
 
   td_dir = os.path.join(model_dir, "training_dynamics")
-  num_epochs = len([f for f in os.listdir(td_dir) if os.path.isfile(os.path.join(td_dir, f))])
+  if os.path.exists(td_dir):
+    num_epochs = len([f for f in os.listdir(td_dir) if os.path.isfile(os.path.join(td_dir, f))])
+  else:
+    return train_dynamics
   if burn_out:
     num_epochs = burn_out
 
