@@ -61,7 +61,7 @@ class DynamicTrainingSampler(Sampler[int]):
             num_epochs = len([f for f in os.listdir(td_dir) if os.path.isfile(os.path.join(td_dir, f))])
 
         start_dt_epoch = args.start_dt_epoch if args.start_dt_epoch is not None else 1
-        if num_epochs < args.start_dt_epoch:
+        if num_epochs < start_dt_epoch:
             n = len(self.data_source)
             if self.generator is None:
                 seed = int(torch.empty((), dtype=torch.int64).random_().item())
@@ -73,6 +73,7 @@ class DynamicTrainingSampler(Sampler[int]):
                 yield from torch.randperm(n, generator=generator).tolist()
             yield from torch.randperm(n, generator=generator).tolist()[:self.num_samples % n]
         else:
+            print('TD DIR IS: {}'.format(args.td_dir), flush=True)
             training_dynamics = read_training_dynamics(args.td_dir)
             total_epochs = len(list(training_dynamics.values())[0]["logits"])
             args.burn_out = total_epochs
@@ -116,6 +117,7 @@ class DynamicTrainingSampler(Sampler[int]):
                 for _ in range(self.num_samples):
                     yield from random.choices(selected_guid, weights=selected_metric, k=self.num_samples)
             else:
+                random.shuffle(selected_guid)
                 for _ in range(len(selected_guid)):
                     yield from selected_guid
 

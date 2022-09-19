@@ -36,11 +36,16 @@ class Params:
         self.task_name: str = configs["task_name"]
         assert self.task_name.lower() in processors.keys()
 
+        self.eval_tasks_names: list = configs.get("eval_tasks_names", [])
+
         # Random seed for initialization.
         self.seed: int = configs["seed"]
 
-        # The output directory where the model predictions and checkpoints will be written.
+        # The output directory where the model predictions will be written.
         self.output_dir: str = configs["output_dir"]
+
+        # The output directory where model weights will be saved.
+        self.model_weights_output_dir: str = configs["model_weights_output_dir"]
 
         # Whether to run training.
         self.do_train: bool = configs.get("do_train", False)
@@ -61,6 +66,9 @@ class Params:
 
         # Where to store the pre-trained models downloaded from s3:// location.
         self.cache_dir: str = configs.get("cache_dir", "")
+
+        # will store the path to checkpoint directory after it's resolved, if found
+        self.checkpoint_dir = None
 
         # Where to store the feature cache for the model.
         self.features_cache_dir: str = configs.get("features_cache_dir",
