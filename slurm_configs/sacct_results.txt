@@ -1,0 +1,107 @@
+       JobID    JobName  Partition    Account  AllocCPUS      State ExitCode 
+------------ ---------- ---------- ---------- ---------- ---------- -------- 
+12454975     huji_abdu+      short       roys          2  COMPLETED      0:0 
+12454975.ba+      batch                  roys          2  COMPLETED      0:0 
+12454975.ex+     extern                  roys          2  COMPLETED      0:0 
+12455083     auto_reru+      short       roys          2 CANCELLED+      0:0 
+12455083.ba+      batch                  roys          2  CANCELLED     0:15 
+12455083.ex+     extern                  roys          2  COMPLETED      0:0 
+12456746     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456746.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456746.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456747     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456747.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456747.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456748     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456748.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456748.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456749     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456749.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456749.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456750     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456750.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456750.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456751     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456751.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456751.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456752     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456752.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456752.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456753     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456753.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456753.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456754     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456754.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456754.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456755     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456755.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456755.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456756     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456756.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456756.ex+     extern            killable-+          2  COMPLETED      0:0 
+12456757     huji_hell+   killable killable-+          1  COMPLETED      0:0 
+12456757.ba+      batch            killable-+          1  COMPLETED      0:0 
+12456757.ex+     extern            killable-+          1  COMPLETED      0:0 
+12456758     huji_hell+   killable killable-+          1  COMPLETED      0:0 
+12456758.ba+      batch            killable-+          1  COMPLETED      0:0 
+12456758.ex+     extern            killable-+          1  COMPLETED      0:0 
+12456762     huji_hell+   killable killable-+          2  COMPLETED      0:0 
+12456762.ba+      batch            killable-+          2  COMPLETED      0:0 
+12456762.ex+     extern            killable-+          2  COMPLETED      0:0 
+12457294     auto_reru+      short       roys          2    RUNNING      0:0 
+12457294.ba+      batch                  roys          2    RUNNING      0:0 
+12457294.ex+     extern                  roys          2  COMPLETED      0:0 
+12461122     huji_bool+   killable killable-+          2  COMPLETED      0:0 
+12461122.ba+      batch            killable-+          2  COMPLETED      0:0 
+12461122.ex+     extern            killable-+          2  COMPLETED      0:0 
+12461123     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461123.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461123.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461124     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461124.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461124.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461125     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461125.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461125.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461126     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461126.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461126.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461127     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461127.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461127.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461128     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461128.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461128.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461129     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461129.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461129.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461130     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461130.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461130.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461131     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461131.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461131.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461132     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461132.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461132.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461133     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461133.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461133.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461134     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461134.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461134.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461135     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461135.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461135.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461136     huji_bool+   killable killable-+          2  COMPLETED      0:0 
+12461136.ba+      batch            killable-+          2  COMPLETED      0:0 
+12461136.ex+     extern            killable-+          2  COMPLETED      0:0 
+12461137     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461137.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461137.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461138     huji_bool+   killable killable-+          1  COMPLETED      0:0 
+12461138.ba+      batch            killable-+          1  COMPLETED      0:0 
+12461138.ex+     extern            killable-+          1  COMPLETED      0:0 
+12461139     huji_bool+   killable killable-+          2  COMPLETED      0:0 
+12461139.ba+      batch            killable-+          2  COMPLETED      0:0 
+12461139.ex+     extern            killable-+          2  COMPLETED      0:0 
