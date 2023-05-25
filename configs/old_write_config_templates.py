@@ -1,3 +1,156 @@
+# # --- anli_v1.0_R3 24 evals---
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.50', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.50', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.50', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.50', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.50', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.50', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+#
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.33', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.33', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.33', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.33', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.33', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.33', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+#
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.25', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.25', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.25', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.25', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.25', max_seq_length='201', seed='42',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+# quick_write_config(workspace='huji', task='anli_v1.0_R3', model='microsoft/deberta-large', model_type='deberta',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.25', max_seq_length='201', seed='43',
+#                    start_dt_epoch='0', patience='100', batch_size='2', eval_tasks_names=['SNLI', 'anli_v1.0_R3'])
+#
+# # --- abductive_nli 24 evals---
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.50', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.50', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.50', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.50', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.50', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.50', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+#
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.33', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.33', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.33', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.33', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.33', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.33', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+#
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.25', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='2', metric='variability', favored_fraction='0.25', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.25', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='3', metric='variability', favored_fraction='0.25', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.25', max_seq_length='null', seed='42',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+# quick_write_config(workspace='huji', task='abductive_nli', train_set_fraction='0.6', model='microsoft/deberta-large', model_type='deberta_mc',
+#                    model_name='deberta-large', data_model='microsoft/deberta-large', data_model_name='deberta-large',
+#                    bias='4', metric='variability', favored_fraction='0.25', max_seq_length='null', seed='43',
+#                    start_dt_epoch='0', patience='100', eval_tasks_names=['hellaswag', 'abductive_nli', 'WINOGRANDE'])
+
+
 # quick_write_config(workspace='huji', task='hellaswag', model='microsoft/deberta-large', model_type='deberta_mc',
 #                    model_name='deberta-large', max_seq_length='100', seed='42', batch_size='2')
 # quick_write_config(workspace='huji', task='boolq', model='microsoft/deberta-large', model_type='deberta',

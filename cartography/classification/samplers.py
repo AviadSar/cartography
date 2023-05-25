@@ -76,7 +76,12 @@ class DynamicTrainingSampler(Sampler[int]):
             print('TD DIR IS: {}'.format(args.td_dir), flush=True)
             training_dynamics = read_training_dynamics(args.td_dir)
             total_epochs = len(list(training_dynamics.values())[0]["logits"])
-            args.burn_out = total_epochs
+
+            if start_dt_epoch == 0:
+                if args.burn_out is None:
+                    args.burn_out = total_epochs
+                if args.burn_in is None:
+                    args.burn_in = 0
             args.include_ci = False
             train_dy_metrics, _ = compute_train_dy_metrics(training_dynamics, args)
 
@@ -100,6 +105,11 @@ class DynamicTrainingSampler(Sampler[int]):
                     selected = pd.concat(list_favored + [unfavored])
                 else:
                     selected = sorted_scores.head(n=int(args.favored_fraction * len(sorted_scores)) + 1)
+                    if args.mix_confidence is not None:
+                        confidence_sorted_scores = train_dy_metrics.sort_values(by=['confidence'], ascending=False)
+                        metric_selected = sorted_scores.head(n=int(args.favored_fraction * (1 - args.mix_confidence) * len(sorted_scores)) + 1)
+                        confidence_selected = confidence_sorted_scores.head(n=int(args.favored_fraction * args.mix_confidence * len(sorted_scores)) + 1)
+                        selected = pd.concat([metric_selected, confidence_selected])
             elif args.bias is not None:
                 selected = sorted_scores
                 selected_metric_min = selected[args.metric].min()

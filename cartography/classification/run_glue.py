@@ -147,7 +147,99 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer):
+def reboot_model(args, config):
+    config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+    model = model_class.from_pretrained(
+        args.model_name_or_path,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        cache_dir=args.cache_dir if args.cache_dir else None, )
+    model.to(args.device)
+
+    # Prepare optimizer and schedule (linear warmup and decay)
+    no_decay = ["bias", "LayerNorm.weight"]
+    optimizer_grouped_parameters = [
+        {"params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+         "weight_decay": args.weight_decay,
+         },
+        {"params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+         "weight_decay": 0.0
+         },
+    ]
+
+    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=args.max_steps)
+
+    return model, optimizer,scheduler
+
+
+def extract_td(extract_dir, config, train_dataset, epoch, global_step, args):
+    config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+    model = model_class.from_pretrained(
+        extract_dir,
+        from_tf=bool(".ckpt" in extract_dir),
+        config=config,
+        local_files_only=True)
+    model.to(args.device)
+
+    train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+    if args.granularity is not None:
+        train_sampler = EvenRandomSampler(train_dataset,
+                                          dividends=args.gradient_accumulation_steps * args.per_gpu_train_batch_size,
+                                          granularity=args.granularity)
+    elif args.favored_fraction is not None:
+        train_sampler = DynamicTrainingSampler(train_dataset, args=args)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+
+    epoch_iterator = tqdm(train_dataloader,
+                          desc="Iteration",
+                          disable=args.local_rank not in [-1, 0],
+                          mininterval=10,
+                          ncols=100)
+
+    train_ids = None
+    train_golds = None
+    train_logits = None
+    train_losses = None
+
+    model.eval()
+    with torch.no_grad():
+        for step, batch in enumerate(epoch_iterator):
+            batch = tuple(t.to(args.device) for t in batch)
+            inputs = {"input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
+            if args.model_type != "distilbert":
+                inputs["token_type_ids"] = (
+                    batch[2] if args.model_type in ["bert", "xlnet", "albert"] else None
+                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
+            outputs = model(**inputs)
+            loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+
+            if train_logits is None:  # Keep track of training dynamics.
+                train_ids = batch[4].detach().cpu().numpy()
+                train_logits = outputs[1].detach().cpu().numpy()
+                train_golds = inputs["labels"].detach().cpu().numpy()
+                train_losses = loss.detach().cpu().numpy()
+            else:
+                train_ids = np.append(train_ids, batch[4].detach().cpu().numpy())
+                train_logits = np.append(train_logits, outputs[1].detach().cpu().numpy(), axis=0)
+                train_golds = np.append(train_golds, inputs["labels"].detach().cpu().numpy())
+                train_losses = np.append(train_losses, loss.detach().cpu().numpy())
+    model.train()
+
+    log_training_dynamics(output_dir=args.output_dir,
+                          epoch=epoch,
+                          train_ids=list(train_ids),
+                          train_logits=list(train_logits),
+                          train_golds=list(train_golds),
+                          args=args,
+                          global_step=global_step)
+
+    model, optimizer, scheduler = reboot_model(args, config)
+
+    return model, optimizer, scheduler
+
+
+def train(args, train_dataset, model, tokenizer, config=None):
     """ Train the model """
     # if args.local_rank in [-1, 0]:
     #     tb_writer = SummaryWriter()
@@ -167,6 +259,8 @@ def train(args, train_dataset, model, tokenizer):
 
     t_total = args.max_steps
     args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
+    if args.extract:
+        args.num_train_epochs *= 2
 
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
@@ -179,10 +273,8 @@ def train(args, train_dataset, model, tokenizer):
          },
     ]
 
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
-    )
+    optimizer = AdamW(model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=args.max_steps)
 
     if args.checkpoint_dir:
         # Check if saved optimizer or scheduler states exist
@@ -232,6 +324,9 @@ def train(args, train_dataset, model, tokenizer):
     global_step = 0
     epochs_trained = 0
     steps_trained_in_this_epoch = 0
+    best_dev_performance = 0
+    best_eval_cycle = 0
+    eval_cycle = 0
     # Check if continuing training from a checkpoint
     files_or_directories = os.listdir(args.output_dir)
     files_or_directories.sort(key=lambda x: os.path.getmtime(os.path.join(args.output_dir, x)))
@@ -241,6 +336,16 @@ def train(args, train_dataset, model, tokenizer):
             global_step = int(file_or_directory.split("-")[-1].split("/")[0])
             epochs_trained = global_step // (len(train_dataloader) // args.gradient_accumulation_steps)
             steps_trained_in_this_epoch = (global_step * args.gradient_accumulation_steps) % len(train_dataloader)
+
+            for eval_metrics_file in files_or_directories:
+                if 'eval_metrics_train' in eval_metrics_file:
+                    with open(os.path.join(args.output_dir, eval_metrics_file), 'r') as eval_metrics:
+                        json_lines = [json.loads(line) for line in eval_metrics]
+                        # eval_cycle = json_lines[-1]['eval_cycle'] + 1
+                        eval_cycle = global_step // args.save_steps
+                        best_dev_performance = json_lines[-1]['best_dev_performance']
+                        best_eval_cycle = [line['best_dev_performance'] for line in json_lines].index(best_dev_performance)
+
 
             logger.info(f"  Continuing training from checkpoint, will skip to saved global_step")
             logger.info(f"  Continuing training from epoch {epochs_trained}")
@@ -257,12 +362,11 @@ def train(args, train_dataset, model, tokenizer):
                             mininterval=10,
                             ncols=100)
     set_seed(args)  # Added here for reproductibility
-    best_dev_performance = 0
-    best_eval_cycle = epochs_trained
 
     train_acc = 0.0
-
-    eval_cycle = 0
+    dev_performances = []
+    extraction_epoch = 0
+    done_extraction = False
 
     for epoch, _ in enumerate(train_iterator):
         epoch_iterator = tqdm(train_dataloader,
@@ -270,6 +374,9 @@ def train(args, train_dataset, model, tokenizer):
                               disable=args.local_rank not in [-1, 0],
                               mininterval=10,
                               ncols=100)
+
+        if epoch > 0 and args.reboot_on_epoch and config is not None:
+            model, optimizer, scheduler = reboot_model(args, config)
 
         train_ids = None
         train_golds = None
@@ -359,8 +466,27 @@ def train(args, train_dataset, model, tokenizer):
                     #### Post eval-cycle ####
                     # Only evaluate when single GPU otherwise metrics may not average well
                     if args.local_rank == -1 and args.evaluate_during_training:
-                        best_dev_performance, best_eval_cycle = save_model(
+                        dev_performance, best_dev_performance, best_eval_cycle = save_model(
                             args, model, tokenizer, eval_cycle, best_eval_cycle, best_dev_performance, eval_cycle)
+                        if args.extract:
+                            dev_performances.append([global_step, dev_performance])
+                            if len(dev_performances) > args.extract_patience and dev_performance < dev_performances[-(args.extract_patience + 1)][1] * args.extract_threshold:
+                                extract_dir = os.path.join(args.output_dir, "extract-{}".format(dev_performances[-(args.extract_patience + 1)][0]))
+                                model, optimizer, scheduler = extract_td(extract_dir, config, train_dataset, extraction_epoch, global_step, args)
+                                for file_or_directory in os.listdir(args.output_dir):
+                                    if 'extract-' in file_or_directory:
+                                        shutil.rmtree(os.path.join(args.output_dir, file_or_directory), ignore_errors=True)
+                                dev_performances = []
+                                extraction_epoch += 1
+                                if extraction_epoch > 5:
+                                    done_extraction = True
+                                break
+                            else:
+                                extract_dir = os.path.join(args.output_dir, "extract-{}".format(global_step))
+                                if not os.path.exists(extract_dir):
+                                    os.makedirs(extract_dir)
+                                model_to_save = model.module if hasattr(model, "module") else model
+                                model_to_save.save_pretrained(extract_dir)
 
                     train_result = compute_metrics(args.task_name, np.argmax(train_logits, axis=1), train_golds)
                     train_acc = train_result["acc"]
@@ -385,10 +511,10 @@ def train(args, train_dataset, model, tokenizer):
 
                     eval_cycle += 1
 
-                    if args.max_steps > 0 and global_step > args.max_steps:
+                    if args.max_steps > 0 and global_step > args.max_steps and not args.extract:
                         train_iterator.close()
                         break
-                    elif args.evaluate_during_training and eval_cycle - best_eval_cycle >= args.patience:
+                    elif args.evaluate_during_training and eval_cycle - best_eval_cycle >= args.patience and not args.extract:
                         logger.info(f"Ran out of patience. Best eval_cycle was {best_eval_cycle}. "
                                     f"Stopping training at eval_cycle {eval_cycle} out of {args.num_eval_cycles} epochs.")
                         train_iterator.close()
@@ -399,6 +525,20 @@ def train(args, train_dataset, model, tokenizer):
                         args.save_steps > 0 and
                         global_step % args.save_steps == 0
                 ):
+                    # log training dynamics
+                    if not args.extract:
+                        log_training_dynamics(output_dir=args.output_dir,
+                                              epoch=epoch,
+                                              train_ids=list(train_ids),
+                                              train_logits=list(train_logits),
+                                              train_golds=list(train_golds),
+                                              args=args,
+                                              global_step=global_step)
+                    train_ids = None
+                    train_golds = None
+                    train_logits = None
+                    train_losses = None
+
                     # Save model checkpoint
                     output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(global_step))
                     if not os.path.exists(output_dir):
@@ -421,16 +561,21 @@ def train(args, train_dataset, model, tokenizer):
 
             epoch_iterator.set_description(f"lr = {scheduler.get_lr()[0]:.8f}, "
                                            f"loss = {(tr_loss - epoch_loss) / (step + 1):.4f}")
-            if args.max_steps > 0 and global_step > args.max_steps:
+            if args.max_steps > 0 and global_step > args.max_steps and not args.extract:
                 epoch_iterator.close()
                 break
         else:
             # Keep track of training dynamics.
-            log_training_dynamics(output_dir=args.output_dir,
-                                  epoch=epoch,
-                                  train_ids=list(train_ids),
-                                  train_logits=list(train_logits),
-                                  train_golds=list(train_golds))
+            if not args.extract:
+                log_training_dynamics(output_dir=args.output_dir,
+                                      epoch=epoch,
+                                      train_ids=list(train_ids),
+                                      train_logits=list(train_logits),
+                                      train_golds=list(train_golds),
+                                      args=args,
+                                      global_step=global_step)
+        if done_extraction:
+            break
 
     # if args.local_rank in [-1, 0]:
     #     tb_writer.close()
@@ -449,15 +594,15 @@ def save_model(args, model, tokenizer, epoch, best_epoch, best_dev_performance, 
 
         # Save model checkpoint
         # Take care of distributed/parallel training
-        if args.save_model:
-            if not os.path.exists(args.model_weights_output_dir) and args.local_rank in [-1, 0]:
-                os.makedirs(args.model_weights_output_dir)
-            torch.save(model.state_dict(), os.path.join(args.model_weights_output_dir, "model_weights.bin"))
-            torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
+        # if args.save_model:
+        #     if not os.path.exists(args.model_weights_output_dir) and args.local_rank in [-1, 0]:
+        #         os.makedirs(args.model_weights_output_dir)
+        #     torch.save(model.state_dict(), os.path.join(args.model_weights_output_dir, "model_weights.bin"))
+        #     torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         logger.info(f"*** Found BEST model, and saved checkpoint. "
                     f"BEST dev performance : {dev_performance:.4f} ***")
-    return best_dev_performance, best_epoch
+    return dev_performance, best_dev_performance, best_epoch
 
 
 def evaluate(args, model, tokenizer, prefix="", eval_split="dev", eval_cycle=None, eval_on_train_task=True):
@@ -556,7 +701,10 @@ def evaluate(args, model, tokenizer, prefix="", eval_split="dev", eval_cycle=Non
             for key in sorted(result.keys()):
                 logger.info(f"{eval_task} {eval_split} {prefix} {key} = {result[key]:.4f}")
             with open(output_eval_file, "a") as writer:
-                writer.write(json.dumps(results) + "\n")
+                with open(output_eval_file, "r") as reader:
+                    lines = reader.readlines()
+                    if eval_cycle is None or eval_cycle >= len(lines):
+                        writer.write(json.dumps(results) + "\n")
 
             # predictions
             all_predictions[eval_task] = []
@@ -725,6 +873,8 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False, data_split="t
         all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
     elif output_mode == "regression":
         all_labels = torch.tensor([f.label for f in features], dtype=torch.float)
+    else:
+        raise ValueError('No such output mode: "{}"'.format(output_mode))
 
     dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels, all_example_ids)
     return dataset
@@ -740,10 +890,13 @@ def run_transformer(args):
             f" Use --overwrite_output_dir to overcome.")
 
     if os.path.exists(args.output_dir):
+        checkpoint_dirs = []
         for file_or_directory in os.listdir(args.output_dir):
             if 'checkpoint' in file_or_directory:
-                args.checkpoint_dir = os.path.join(args.output_dir, file_or_directory)
-                break
+                checkpoint_dirs.append(file_or_directory)
+        for file_or_directory in sorted(checkpoint_dirs, key=lambda name: int(name.split("-")[-1].split("/")[0])):
+            args.checkpoint_dir = os.path.join(args.output_dir, file_or_directory)
+            break
         else:
             if args.overwrite_output_dir:
                 shutil.rmtree(os.path.join(args.output_dir), ignore_errors=True)
@@ -855,7 +1008,7 @@ def run_transformer(args):
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         if args.train_set_fraction < 1:
             train_dataset = TensorDataset(*train_dataset[:int(len(train_dataset) * args.train_set_fraction)])
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss = train(args, train_dataset, model, tokenizer, config=config)
         logger.info(f" global_step = {global_step}, average loss = {tr_loss:.4f}")
 
     # Saving best-practices: if you use defaults names for the model,
@@ -885,7 +1038,7 @@ def run_transformer(args):
         eval_splits.append("test")
 
     if (args.do_test or args.do_eval) and args.local_rank in [-1, 0]:
-        model.load_state_dict(torch.load(os.path.join(args.model_weights_output_dir, "model_weights.bin")))
+        # model.load_state_dict(torch.load(os.path.join(args.model_weights_output_dir, "model_weights.bin")))
         results = {}
         model.eval()
         for eval_split in eval_splits:

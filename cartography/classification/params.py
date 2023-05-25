@@ -86,6 +86,23 @@ class Params:
         self.evaluate_during_training_epoch: bool = configs.get("evaluate_during_training_epoch",
                                                                 False)
 
+        # reboot model weights after each epoch
+        self.reboot_on_epoch: bool = configs.get("reboot_on_epoch", False)
+
+        self.extract: bool = configs.get("extract", False)
+
+        self.extract_threshold: float = configs.get("extract_threshold", 1.05)
+
+        self.extract_patience: int = configs.get("extract_patience", 2)
+
+        self.from_extract: bool = configs.get("from_extract", False)
+
+        self.from_extract_threshold: float = configs.get("from_extract_threshold", 1.05)
+
+        self.from_extract_patience: int = configs.get("from_extract_patience", 2)
+
+        self.mix_confidence: float = configs.get("mix_confidence", None)
+
         # how many steps between evaluations
         self.eval_steps: int = configs.get("eval_steps", 0)
 
@@ -147,6 +164,12 @@ class Params:
 
         # If dev performance does not improve in X updates, end training.
         self.patience: int = configs.get("patience", 3)
+
+        # when training with training dynamics, on which epoch of training dynamics to end
+        self.burn_out: int = configs.get("burn_out", 6)
+
+        # when training with training dynamics, on which epoch of training dynamics to start
+        self.burn_in: int = configs.get("burn_in", 0)
 
         # Save checkpoint every X updates steps.
         self.save_steps: int = configs.get("save_steps", 0)

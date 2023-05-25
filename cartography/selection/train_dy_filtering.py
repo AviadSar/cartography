@@ -103,7 +103,7 @@ def compute_train_dy_metrics(training_dynamics, args):
     # TODO: remove first epoch
     num_tot_epochs = len(list(training_dynamics.values())[0]["logits"])
     if args.burn_out < num_tot_epochs:
-        logger.info(f"Computing training dynamics. Burning out at {args.burn_out} of {num_tot_epochs}. ")
+        logger.info(f"Computing training dynamics. Burnin in at {args.burn_in}, Burning out at {args.burn_out}, out of {num_tot_epochs} epochs. ")
     else:
         logger.info(f"Computing training dynamics across {num_tot_epochs} epochs")
     logger.info("Metrics computed: confidence, variability, correctness, forgetfulness, threshold_closeness")
@@ -140,6 +140,9 @@ def compute_train_dy_metrics(training_dynamics, args):
         if args.burn_out < num_tot_epochs:
             correctness_trend = correctness_trend[:args.burn_out]
             true_probs_trend = true_probs_trend[:args.burn_out]
+        if args.burn_in > 0:
+            correctness_trend = correctness_trend[args.burn_in:]
+            true_probs_trend = true_probs_trend[args.burn_in:]
 
         correctness_[guid] = compute_correctness(correctness_trend)
         confidence_[guid] = np.mean(true_probs_trend)

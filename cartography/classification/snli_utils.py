@@ -1,6 +1,7 @@
 import os
 
 from transformers.data.processors.utils import DataProcessor, InputExample
+from cartography.data_utils import read_data
 
 
 class SNLIProcessor(DataProcessor):
@@ -9,28 +10,22 @@ class SNLIProcessor(DataProcessor):
     def get_labels(self):
         return ["entailment", "neutral", "contradiction"]
 
-    def _create_examples(self, lines, set_type):
+    def _create_examples(self, records, set_type):
         """Creates examples for the training and dev sets."""
+        tsv_dict, header = records
         examples = []
-        for (i, line) in enumerate(lines):
-            if i == 0:
-                continue
-
-            # guid = f"{set_type}-{i}" #"%s-%s" % (set_type, line[0])
-            guid = i
-            text_a = line[5]
-            text_b = line[6]
-            label = line[0]
-
-            if label != "neutral" and label != "entailment" and label != "contradiction":
-                continue
+        for idx, line in tsv_dict.items():
+            fields = line.strip().split("\t")
+            text_a = fields[5]
+            text_b = fields[6]
+            label = fields[0]
 
             examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                InputExample(guid=idx, text_a=text_a, text_b=text_b, label=label))
         return examples
 
     def get_examples(self, data_file, set_type):
-        return self._create_examples(self._read_tsv(data_file), set_type=set_type)
+        return self._create_examples(read_data(data_file, task_name="SNLI"), set_type)
 
     def get_train_examples(self, data_dir):
         """See base class."""
